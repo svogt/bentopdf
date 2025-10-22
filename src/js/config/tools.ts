@@ -233,7 +233,12 @@ export const categories = [
         subtitle: 'Convert Markdown files to PDF with live preview.',
       },
       // { id: 'scan-to-pdf', name: 'Scan to PDF', icon: 'camera', subtitle: 'Use your camera to create a scanned PDF.' },
-      // { id: 'word-to-pdf', name: 'Word to PDF', icon: 'file-text', subtitle: 'Convert .docx documents to PDF.' },
+      {
+        id: 'word-to-pdf',
+        name: 'Word to PDF',
+        icon: 'file-text',
+        subtitle: 'Convert .docx documents to PDF.',
+      },
     ],
   },
   {
@@ -471,6 +476,12 @@ export const categories = [
         name: 'Encrypt PDF',
         icon: 'lock',
         subtitle: 'Lock your PDF by adding a password.',
+      },
+      {
+        id: 'sanitize-pdf',
+        name: 'Sanitize PDF',
+        icon: 'brush-cleaning',
+        subtitle: 'Remove metadata, annotations, scripts, and more.',
       },
       {
         id: 'sanitize-pdf',

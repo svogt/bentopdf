@@ -47,7 +47,7 @@ import { changeBackgroundColor } from './change-background-color.js';
 import { changeTextColor, setupTextColorTool } from './change-text-color.js';
 import { setupCompareTool } from './compare-pdfs.js';
 import { setupOcrTool } from './ocr-pdf.js';
-import { wordToPdf } from './word-to-pdf.js';
+import { setupWordToPdfTool } from './word-to-pdf.js';
 import { applyAndSaveSignatures, setupSignTool } from './sign-pdf.js';
 import {
   removeAnnotations,
@@ -63,10 +63,7 @@ import {
 import { alternateMerge, setupAlternateMergeTool } from './alternate-merge.js';
 import { linearizePdf } from './linearize.js';
 import { addAttachments, setupAddAttachmentsTool } from './add-attachments.js';
-import { extractAttachments } from './extract-attachments.js';
-import { editAttachments, setupEditAttachmentsTool } from './edit-attachments.js';
 import { sanitizePdf } from './sanitize-pdf.js';
-import { removeRestrictions } from './remove-restrictions.js';
 
 export const toolLogic = {
   merge: { process: merge, setup: setupMergeTool },
@@ -118,7 +115,7 @@ export const toolLogic = {
   'change-text-color': { process: changeTextColor, setup: setupTextColorTool },
   'compare-pdfs': { setup: setupCompareTool },
   'ocr-pdf': { setup: setupOcrTool },
-  'word-to-pdf': wordToPdf,
+  'word-to-pdf': { process: setupWordToPdfTool, setup: setupWordToPdfTool },
   'sign-pdf': { process: applyAndSaveSignatures, setup: setupSignTool },
   'remove-annotations': {
     process: removeAnnotations,
@@ -139,11 +136,6 @@ export const toolLogic = {
   'add-attachments': {
     process: addAttachments,
     setup: setupAddAttachmentsTool,
-  },
-  'extract-attachments': extractAttachments,
-  'edit-attachments': {
-    process: editAttachments,
-    setup: setupEditAttachmentsTool,
   },
   'sanitize-pdf': sanitizePdf,
 };

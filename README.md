@@ -45,17 +45,6 @@ BentoPDF offers a comprehensive suite of tools to handle all your PDF needs.
 | **View PDF**              | A powerful, integrated PDF viewer.                                         |
 | **Alternate & Mix pages** | Merge pages by alternating pages from each PDF.                            |
 | **Posterize PDF**         | Split a PDF into multiple smaller pages for print.                         |
-| **PDF Multi Tool**        | Merge, Split, Organize, Delete, Rotate, Add Blank Pages, Extract and Duplicate in an unified interface. |
-| **Add Attachments**       | Embed one or more files into your PDF.                                     |
-| **Extract Attachments**   | Extract all embedded files from PDF(s) as a ZIP.                           |
-| **Edit Attachments**      | View or remove attachments in your PDF.                                    |
-| **Divide Pages**          | Divide pages horizontally or vertically.                                   |
-| **Combine to Single Page**| Stitch all pages into one continuous scroll.                               |
-| **Add Blank Page**        | Insert an empty page anywhere in your PDF.                                 |
-| **Reverse Pages**         | Flip the order of all pages in your document.                              |
-| **View Metadata**         | Inspect the hidden properties of your PDF.                                 |
-| **PDFs to ZIP**           | Package multiple PDF files into a ZIP archive.                             |
-| **Compare PDFs**          | Compare two PDFs side by side.                                             |
 
 ### Edit & Modify PDFs
 
@@ -73,10 +62,6 @@ BentoPDF offers a comprehensive suite of tools to handle all your PDF needs.
 | **Flatten PDF**        | Flatten form fields and annotations into static content.    |
 | **Remove Annotations** | Remove comments, highlights, and other annotations.         |
 | **Remove Blank Pages** | Auto detect and remove blank pages in a PDF.                |
-| **Edit Bookmarks** | Add, Edit, Create, Import and Export PDF Bookmarks.                |
-| **Add Stamps**         | Add image stamps to your PDF using the annotation toolbar.    |
-| **Table of Contents**  | Generate a table of contents page from PDF bookmarks.         |
-| **Redact Content**     | Permanently remove sensitive content from your PDFs.        |
 
 ### Convert to PDF
 
@@ -123,9 +108,6 @@ BentoPDF offers a comprehensive suite of tools to handle all your PDF needs.
 | **Remove Metadata**    | Strip all metadata from your PDF for privacy.                      |
 | **Linearize PDF**      | Optimize PDF for fast web view.                                    |
 | **Sanitize PDF**       | Remove potentially unwanted or malicous files from PDF.            |
-| **Fix Page Size**      | Standardize all pages to a uniform size.                           |
-| **Page Dimensions**    | Analyze page size, orientation, and units.                         |
-| **Remove Restrictions**| Remove password protection and security restrictions associated with digitally signed PDF files. |
 
 ---
 
@@ -432,7 +414,6 @@ BentoPDF wouldn't be possible without the amazing open-source tools and librarie
 - **[Vite](https://vitejs.dev/)** – For lightning-fast development and build tooling.
 - **[Tailwind CSS](https://tailwindcss.com/)** – For rapid, flexible, and beautiful UI styling.
 - **[qpdf](https://github.com/qpdf/qpdf)** and **[qpdf-wasm](https://github.com/neslinesli93/qpdf-wasm)**– A powerful command-line tool and library for inspecting, repairing, and transforming PDF file ported to wasm
-- **[cpdf](https://www.coherentpdf.com/)** – For content preserving pdf operations.
 
 Your work inspires and empowers developers everywhere. Thank you for making open-source amazing!
 
