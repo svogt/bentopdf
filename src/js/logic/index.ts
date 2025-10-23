@@ -30,7 +30,7 @@ import { txtToPdf, setupTxtToPdfTool } from './txt-to-pdf.js';
 import { invertColors } from './invert-colors.js';
 // import { viewMetadata } from './view-metadata.js';
 import { reversePages } from './reverse-pages.js';
-// import { mdToPdf } from './md-to-pdf.js';
+import { mdToPdf, setupMarkdownTool } from './md-to-pdf.js';
 import { svgToPdf } from './svg-to-pdf.js';
 import { bmpToPdf } from './bmp-to-pdf.js';
 import { heicToPdf } from './heic-to-pdf.js';
@@ -101,7 +101,7 @@ export const toolLogic = {
   'txt-to-pdf': { process: txtToPdf, setup: setupTxtToPdfTool },
   'invert-colors': invertColors,
   'reverse-pages': reversePages,
-  // 'md-to-pdf': mdToPdf,
+  'md-to-pdf': { process: mdToPdf, setup: setupMarkdownTool },
   'svg-to-pdf': svgToPdf,
   'bmp-to-pdf': bmpToPdf,
   'heic-to-pdf': heicToPdf,
