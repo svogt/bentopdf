@@ -31,15 +31,10 @@ export const showLoader = (text = 'Processing...') => {
 
 export const hideLoader = () => dom.loaderModal.classList.add('hidden');
 
-export const showAlert = (title: any, message: any, onConfirm?: () => void) => {
+export const showAlert = (title: any, message: any) => {
   dom.alertTitle.textContent = title;
   dom.alertMessage.textContent = message;
   dom.alertModal.classList.remove('hidden');
-  
-  // Store callback for when user clicks OK
-  if (onConfirm) {
-    (dom.alertModal as any).onConfirmCallback = onConfirm;
-  }
 };
 
 export const hideAlert = () => dom.alertModal.classList.add('hidden');
@@ -326,6 +321,8 @@ export const toolTemplates = {
             <option value="even-odd">Split by Even/Odd Pages</option>
             <option value="all">Split All Pages into Separate Files</option>
             <option value="visual">Select Pages Visually</option>
+            <option value="bookmarks">Split by Bookmarks</option>
+            <option value="n-times">Split N Times</option>
         </select>
 
         <div id="range-panel">
@@ -371,6 +368,39 @@ export const toolTemplates = {
             <p class="text-sm text-gray-300"><strong class="text-white">How it works:</strong></p>
             <p class="text-xs text-gray-400 mt-1">This mode will create a separate PDF file for every single page in your document and download them together in one ZIP archive.</p>
         </div>
+
+        <div id="bookmarks-panel" class="hidden">
+            <div class="p-3 bg-gray-900 rounded-lg border border-gray-700 mb-3">
+                <p class="text-sm text-gray-300"><strong class="text-white">How it works:</strong></p>
+                <p class="text-xs text-gray-400 mt-1">Split the PDF at bookmark locations. Each bookmark will start a new PDF file.</p>
+            </div>
+            <div class="mb-4">
+                <label for="bookmark-level" class="block mb-2 text-sm font-medium text-gray-300">Bookmark Level</label>
+                <select id="bookmark-level" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5">
+                    <option value="0">Level 0 (Top level only)</option>
+                    <option value="1">Level 1</option>
+                    <option value="2">Level 2</option>
+                    <option value="3">Level 3</option>
+                    <option value="all" selected>All Levels</option>
+                </select>
+                <p class="mt-1 text-xs text-gray-400">Select which bookmark nesting level to use for splitting</p>
+            </div>
+        </div>
+
+        <div id="n-times-panel" class="hidden">
+            <div class="p-3 bg-gray-900 rounded-lg border border-gray-700 mb-3">
+                <p class="text-sm text-gray-300"><strong class="text-white">How it works:</strong></p>
+                <p class="text-xs text-gray-400 mt-1">Split the PDF into N equal parts. For example, a 40-page PDF with N=5 will create 8 PDFs with 5 pages each.</p>
+            </div>
+            <div class="mb-4">
+                <label for="split-n-value" class="block mb-2 text-sm font-medium text-gray-300">Number of Pages per Split (N)</label>
+                <input type="number" id="split-n-value" min="1" value="5" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5">
+                <p class="mt-1 text-xs text-gray-400">Each resulting PDF will contain N pages (except possibly the last one)</p>
+            </div>
+            <div id="n-times-warning" class="hidden p-3 bg-yellow-900/30 border border-yellow-500/30 rounded-lg mb-3">
+                <p class="text-sm text-yellow-200"><strong>Note:</strong> <span id="n-times-warning-text"></span></p>
+            </div>
+        </div>
         
         <div id="zip-option-wrapper" class="hidden mt-4">
             <label class="flex items-center gap-2 text-sm font-medium text-gray-300">
@@ -384,23 +414,73 @@ export const toolTemplates = {
     </div>
 `,
   encrypt: () => `
-        <h2 class="text-2xl font-bold text-white mb-4">Encrypt PDF</h2>
-        <p class="mb-6 text-gray-400">Upload a PDF to create a new, password-protected version.</p>
-        ${createFileInputHTML()}
-        <div id="file-display-area" class="mt-4 space-y-2"></div>
-        <div id="encrypt-options" class="hidden space-y-4 mt-6">
-            <div>
-                <label for="password-input" class="block mb-2 text-sm font-medium text-gray-300">Set Encryption Password</label>
-                <input type="password" id="password-input" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5" placeholder="Enter a strong password">
-            </div>
-            <div class="p-4 bg-gray-900 border border-yellow-500/30 text-yellow-200 rounded-lg">
-                <h3 class="font-semibold text-base mb-2">Important Note</h3>
-                <p class="text-sm text-gray-400">To create the secure file, each page is converted into an image. This means you won't be able to select text or click links in the final encrypted PDF.</p>
-            </div>
-            <button id="process-btn" class="btn-gradient w-full mt-6">Encrypt & Download</button>
+  <h2 class="text-2xl font-bold text-white mb-4">Encrypt PDF</h2>
+  <p class="mb-6 text-gray-400">Add 256-bit AES password protection to your PDF.</p>
+  ${createFileInputHTML()}
+  <div id="file-display-area" class="mt-4 space-y-2"></div>
+  <div id="encrypt-options" class="hidden space-y-4 mt-6">
+      <div>
+          <label for="user-password-input" class="block mb-2 text-sm font-medium text-gray-300">User Password</label>
+          <input required type="password" id="user-password-input" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5" placeholder="Password to open the PDF">
+          <p class="text-xs text-gray-500 mt-1">Required to open and view the PDF</p>
+      </div>
+      <div>
+          <label for="owner-password-input" class="block mb-2 text-sm font-medium text-gray-300">Owner Password (Optional)</label>
+          <input type="password" id="owner-password-input" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5" placeholder="Password for full permissions (recommended)">
+          <p class="text-xs text-gray-500 mt-1">Allows changing permissions and removing encryption</p>
+      </div>
+
+      <!-- Restriction checkboxes (shown when owner password is entered) -->
+      <div id="restriction-options" class="hidden p-4 bg-gray-800 border border-gray-700 rounded-lg">
+        <h3 class="font-semibold text-base mb-2 text-white">🔒 Restrict PDF Permissions</h3>
+        <p class="text-sm text-gray-400 mb-3">Select which actions to disable:</p>
+        <div class="space-y-2">
+          <label class="flex items-center space-x-2">
+            <input type="checkbox" id="restrict-modify" checked>
+            <span>Disable all modifications (--modify=none)</span>
+          </label>
+          <label class="flex items-center space-x-2">
+            <input type="checkbox" id="restrict-extract" checked>
+            <span>Disable text and image extraction (--extract=n)</span>
+          </label>
+          <label class="flex items-center space-x-2">
+            <input type="checkbox" id="restrict-print" checked>
+            <span>Disable all printing (--print=none)</span>
+          </label>
+          <label class="flex items-center space-x-2">
+            <input type="checkbox" id="restrict-accessibility">
+            <span>Disable accessibility text copying (--accessibility=n)</span>
+          </label>
+          <label class="flex items-center space-x-2">
+            <input type="checkbox" id="restrict-annotate">
+            <span>Disable annotations (--annotate=n)</span>
+          </label>
+          <label class="flex items-center space-x-2">
+            <input type="checkbox" id="restrict-assemble">
+            <span>Disable page assembly (--assemble=n)</span>
+          </label>
+          <label class="flex items-center space-x-2">
+            <input type="checkbox" id="restrict-form">
+            <span>Disable form filling (--form=n)</span>
+          </label>
+          <label class="flex items-center space-x-2">
+            <input type="checkbox" id="restrict-modify-other">
+            <span>Disable other modifications (--modify-other=n)</span>
+          </label>
         </div>
-        <canvas id="pdf-canvas" class="hidden"></canvas>
-    `,
+      </div>
+
+      <div class="p-4 bg-yellow-900/20 border border-yellow-500/30 text-yellow-200 rounded-lg">
+          <h3 class="font-semibold text-base mb-2">⚠️ Security Recommendation</h3>
+          <p class="text-sm text-gray-300">For strong security, set both passwords. Without an owner password, the security restrictions (printing, copying, etc.) can be easily bypassed.</p>
+      </div>
+      <div class="p-4 bg-green-900/20 border border-green-500/30 text-green-200 rounded-lg">
+          <h3 class="font-semibold text-base mb-2">✓ High-Quality Encryption</h3>
+          <p class="text-sm text-gray-300">256-bit AES encryption without quality loss. Text remains selectable and searchable.</p>
+      </div>
+      <button id="process-btn" class="btn-gradient w-full mt-6">Encrypt & Download</button>
+  </div>
+`,
   decrypt: () => `
         <h2 class="text-2xl font-bold text-white mb-4">Decrypt PDF</h2>
         <p class="mb-6 text-gray-400">Upload an encrypted PDF and provide its password to create an unlocked version.</p>
@@ -489,9 +569,17 @@ export const toolTemplates = {
         <p class="mb-6 text-gray-400">Convert each page of a PDF file into a high-quality JPG image.</p>
         ${createFileInputHTML()}
         <div id="file-display-area" class="mt-4 space-y-2"></div>
-        <div id="jpg-preview" class="hidden text-center mt-6">
-            <p class="mb-4 text-white">Click "Download All as ZIP" to get images for all pages.</p>
-            <button id="process-btn" class="btn-gradient w-full mt-6">Download All as ZIP</button>
+        <div id="jpg-preview" class="hidden mt-6">
+            <div class="mb-4">
+                <label for="jpg-quality" class="block mb-2 text-sm font-medium text-gray-300">Image Quality</label>
+                <div class="flex items-center gap-4">
+                    <input type="range" id="jpg-quality" min="0.1" max="1.0" step="0.1" value="0.9" class="flex-1">
+                    <span id="jpg-quality-value" class="text-white font-medium w-16 text-right">90%</span>
+                </div>
+                <p class="mt-1 text-xs text-gray-400">Higher quality = larger file size</p>
+            </div>
+            <p class="mb-4 text-white text-center">Click "Download All as ZIP" to get images for all pages.</p>
+            <button id="process-btn" class="btn-gradient w-full">Download All as ZIP</button>
         </div>
     `,
   'jpg-to-pdf': () => `
@@ -499,6 +587,17 @@ export const toolTemplates = {
         <p class="mb-6 text-gray-400">Convert one or more JPG images into a single PDF file.</p>
         ${createFileInputHTML({ multiple: true, accept: 'image/jpeg', showControls: true })}
         <div id="file-display-area" class="mt-4 space-y-2"></div>
+        <div id="jpg-to-pdf-options" class="hidden mt-6">
+            <div class="mb-4">
+                <label for="jpg-pdf-quality" class="block mb-2 text-sm font-medium text-gray-300">PDF Quality</label>
+                <select id="jpg-pdf-quality" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5">
+                    <option value="high">High Quality (Larger file)</option>
+                    <option value="medium" selected>Medium Quality (Balanced)</option>
+                    <option value="low">Low Quality (Smaller file)</option>
+                </select>
+                <p class="mt-1 text-xs text-gray-400">Controls image compression when embedding into PDF</p>
+            </div>
+        </div>
         <button id="process-btn" class="btn-gradient w-full mt-6">Convert to PDF</button>
     `,
   'scan-to-pdf': () => `
@@ -536,8 +635,8 @@ export const toolTemplates = {
 `,
   compress: () => `
     <h2 class="text-2xl font-bold text-white mb-4">Compress PDF</h2>
-    <p class="mb-6 text-gray-400">Reduce file size by choosing the compression method that best suits your document.</p>
-    ${createFileInputHTML({ multiple: true, accept: 'application/pdf', showControls: true })}
+    <p class="mb-6 text-gray-400">Reduce file size by choosing the compression method that best suits your document. Supports multiple PDFs.</p>
+    ${createFileInputHTML({ multiple: true, showControls: true })}
     <div id="file-display-area" class="mt-4 space-y-2"></div>
     <div id="compress-options" class="hidden mt-6 space-y-6">
         <div>
@@ -661,8 +760,16 @@ export const toolTemplates = {
         <p class="mb-6 text-gray-400">Convert each page of a PDF file into a high-quality PNG image.</p>
         ${createFileInputHTML()}
         <div id="file-display-area" class="mt-4 space-y-2"></div>
-        <div id="png-preview" class="hidden text-center mt-6">
-            <p class="mb-4 text-white">Your file is ready. Click the button to download a ZIP file containing all PNG images.</p>
+        <div id="png-preview" class="hidden mt-6">
+            <div class="mb-4">
+                <label for="png-quality" class="block mb-2 text-sm font-medium text-gray-300">Image Quality (Scale)</label>
+                <div class="flex items-center gap-4">
+                    <input type="range" id="png-quality" min="1.0" max="4.0" step="0.5" value="2.0" class="flex-1">
+                    <span id="png-quality-value" class="text-white font-medium w-16 text-right">2.0x</span>
+                </div>
+                <p class="mt-1 text-xs text-gray-400">Higher scale = better quality but larger file size</p>
+            </div>
+            <p class="mb-4 text-white text-center">Your file is ready. Click the button to download a ZIP file containing all PNG images.</p>
             <button id="process-btn" class="btn-gradient w-full">Download All as ZIP</button>
         </div>
     `,
@@ -671,6 +778,17 @@ export const toolTemplates = {
         <p class="mb-6 text-gray-400">Convert one or more PNG images into a single PDF file.</p>
         ${createFileInputHTML({ multiple: true, accept: 'image/png', showControls: true })}
         <div id="file-display-area" class="mt-4 space-y-2"></div>
+        <div id="png-to-pdf-options" class="hidden mt-6">
+            <div class="mb-4">
+                <label for="png-pdf-quality" class="block mb-2 text-sm font-medium text-gray-300">PDF Quality</label>
+                <select id="png-pdf-quality" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5">
+                    <option value="high">High Quality (Larger file)</option>
+                    <option value="medium" selected>Medium Quality (Balanced)</option>
+                    <option value="low">Low Quality (Smaller file)</option>
+                </select>
+                <p class="mt-1 text-xs text-gray-400">Controls image compression when embedding into PDF</p>
+            </div>
+        </div>
         <button id="process-btn" class="btn-gradient w-full mt-6">Convert to PDF</button>
     `,
   'pdf-to-webp': () => `
@@ -678,8 +796,16 @@ export const toolTemplates = {
         <p class="mb-6 text-gray-400">Convert each page of a PDF file into a modern WebP image.</p>
         ${createFileInputHTML()}
         <div id="file-display-area" class="mt-4 space-y-2"></div>
-        <div id="webp-preview" class="hidden text-center mt-6">
-            <p class="mb-4 text-white">Your file is ready. Click the button to download a ZIP file containing all WebP images.</p>
+        <div id="webp-preview" class="hidden mt-6">
+            <div class="mb-4">
+                <label for="webp-quality" class="block mb-2 text-sm font-medium text-gray-300">Image Quality</label>
+                <div class="flex items-center gap-4">
+                    <input type="range" id="webp-quality" min="0.1" max="1.0" step="0.1" value="0.9" class="flex-1">
+                    <span id="webp-quality-value" class="text-white font-medium w-16 text-right">90%</span>
+                </div>
+                <p class="mt-1 text-xs text-gray-400">Higher quality = larger file size</p>
+            </div>
+            <p class="mb-4 text-white text-center">Your file is ready. Click the button to download a ZIP file containing all WebP images.</p>
             <button id="process-btn" class="btn-gradient w-full">Download All as ZIP</button>
         </div>
     `,
@@ -864,56 +990,88 @@ export const toolTemplates = {
         <h2 class="text-2xl font-bold text-white mb-4">Image to PDF Converter</h2>
         <p class="mb-6 text-gray-400">Combine multiple images into a single PDF. Drag and drop to reorder.</p>
         ${createFileInputHTML({ multiple: true, accept: 'image/jpeg,image/png,image/webp', showControls: true })}
-        <ul id="image-list" class="mt-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4"></ul>
+        <ul id="image-list" class="mt-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
+        </ul>
+        <div id="image-to-pdf-options" class="hidden mt-6">
+          <div class="mb-4">
+            <label for="image-pdf-quality" class="block mb-2 text-sm font-medium text-gray-300">PDF Image Quality</label>
+            <div class="flex items-center gap-4">
+              <input type="range" id="image-pdf-quality" min="0.3" max="1.0" step="0.1" value="0.9" class="flex-1">
+              <span id="image-pdf-quality-value" class="text-white font-medium w-16 text-right">90%</span>
+            </div>
+            <p class="mt-1 text-xs text-gray-400">Higher quality = larger PDF size</p>
+          </div>
+        </div>
         <button id="process-btn" class="btn-gradient w-full mt-6">Convert to PDF</button>
     `,
 
   'change-permissions': () => `
     <h2 class="text-2xl font-bold text-white mb-4">Change PDF Permissions</h2>
-    <p class="mb-6 text-gray-400">Unlock a PDF and re-save it with new passwords and permissions.</p>
+    <p class="mb-6 text-gray-400">Modify passwords and permissions without losing quality.</p>
     ${createFileInputHTML()}
     <div id="file-display-area" class="mt-4 space-y-2"></div>
     <div id="permissions-options" class="hidden mt-6 space-y-4">
         <div>
-            <label for="current-password" class="block mb-2 text-sm font-medium text-gray-300">Current Password (to unlock)</label>
-            <input type="password" id="current-password" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5" placeholder="Enter current password to open file">
+            <label for="current-password" class="block mb-2 text-sm font-medium text-gray-300">Current Password (if encrypted)</label>
+            <input type="password" id="current-password" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5" placeholder="Leave blank if PDF is not password-protected">
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
                 <label for="new-user-password" class="block mb-2 text-sm font-medium text-gray-300">New User Password (optional)</label>
-                <input type="password" id="new-user-password" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5" placeholder="Password to open file">
+                <input type="password" id="new-user-password" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5" placeholder="Password to open PDF">
             </div>
             <div>
                 <label for="new-owner-password" class="block mb-2 text-sm font-medium text-gray-300">New Owner Password (optional)</label>
-                <input type="password" id="new-owner-password" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5" placeholder="Admin password for permissions">
+                <input type="password" id="new-owner-password" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5" placeholder="Password for full permissions">
             </div>
         </div>
 
-        <div class="p-4 bg-gray-900 border border-blue-500/30 text-blue-200 rounded-lg">
-            <h3 class="font-semibold text-base mb-2">How Passwords Work</h3>
-            <ul class="list-disc list-inside text-sm text-gray-400 space-y-1">
-                <li>The <strong>User Password</strong> is required to open and decrypt the PDF.</li>
-                <li>The <strong>Owner Password</strong> is an admin key that bypasses all permissions.</li>
-                <li>Leave both blank to create an unprotected PDF.</li>
-                <li>Set an Owner Password to enforce the permissions you select below.</li>
+        <div class="p-4 bg-blue-900/20 border border-blue-500/30 text-blue-200 rounded-lg">
+            <h3 class="font-semibold text-base mb-2">How It Works</h3>
+            <ul class="list-disc list-inside text-sm text-gray-300 space-y-1">
+                <li><strong>User Password:</strong> Required to open the PDF</li>
+                <li><strong>Owner Password:</strong> Required to enforce the permissions below</li>
+                <li>Leave both blank to remove all encryption and restrictions</li>
+                <li>Check boxes below to ALLOW specific actions (unchecked = disabled)</li>
             </ul>
         </div>
         
         <fieldset class="border border-gray-600 p-4 rounded-lg">
-            <legend class="px-2 text-sm font-medium text-gray-300">Allow User to:</legend>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                <label class="flex items-center gap-2"><input type="checkbox" id="allow-printing" checked class="checkbox-style"> Print Document</label>
-                <label class="flex items-center gap-2"><input type="checkbox" id="allow-copying" checked class="checkbox-style"> Copy Content</label>
-                <label class="flex items-center gap-2"><input type="checkbox" id="allow-modifying" checked class="checkbox-style"> Modify Document</label>
-                <label class="flex items-center gap-2"><input type="checkbox" id="allow-annotating" checked class="checkbox-style"> Annotate & Comment</label>
-                <label class="flex items-center gap-2"><input type="checkbox" id="allow-filling-forms" checked class="checkbox-style"> Fill in Forms</label>
-                <label class="flex items-center gap-2"><input type="checkbox" id="allow-content-accessibility" checked class="checkbox-style"> Enable Content Accessibility</label>
-                <label class="flex items-center gap-2"><input type="checkbox" id="allow-document-assembly" checked class="checkbox-style"> Assemble Document</label>
+            <legend class="px-2 text-sm font-medium text-gray-300">Permissions (only enforced with Owner Password):</legend>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                <label class="flex items-center gap-2 text-gray-300 cursor-pointer hover:text-white">
+                    <input type="checkbox" id="allow-printing" checked class="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded"> 
+                    Allow Printing
+                </label>
+                <label class="flex items-center gap-2 text-gray-300 cursor-pointer hover:text-white">
+                    <input type="checkbox" id="allow-copying" checked class="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded"> 
+                    Allow Text/Image Extraction
+                </label>
+                <label class="flex items-center gap-2 text-gray-300 cursor-pointer hover:text-white">
+                    <input type="checkbox" id="allow-modifying" checked class="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded"> 
+                    Allow Modifications
+                </label>
+                <label class="flex items-center gap-2 text-gray-300 cursor-pointer hover:text-white">
+                    <input type="checkbox" id="allow-annotating" checked class="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded"> 
+                    Allow Annotations
+                </label>
+                <label class="flex items-center gap-2 text-gray-300 cursor-pointer hover:text-white">
+                    <input type="checkbox" id="allow-filling-forms" checked class="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded"> 
+                    Allow Form Filling
+                </label>
+                <label class="flex items-center gap-2 text-gray-300 cursor-pointer hover:text-white">
+                    <input type="checkbox" id="allow-document-assembly" checked class="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded"> 
+                    Allow Page Assembly
+                </label>
+                <label class="flex items-center gap-2 text-gray-300 cursor-pointer hover:text-white">
+                    <input type="checkbox" id="allow-page-extraction" checked class="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded"> 
+                    Allow Page Extraction
+                </label>
             </div>
         </fieldset>
     </div>
-    <button id="process-btn" class="hidden btn-gradient w-full mt-6">Save New Permissions</button>
+    <button id="process-btn" class="hidden btn-gradient w-full mt-6">Apply Changes</button>
 `,
 
   'pdf-to-markdown': () => `
@@ -928,8 +1086,24 @@ export const toolTemplates = {
     `,
   'txt-to-pdf': () => `
         <h2 class="text-2xl font-bold text-white mb-4">Text to PDF</h2>
-        <p class="mb-6 text-gray-400">Type or paste your text below and convert it to a PDF with custom formatting.</p>
-        <textarea id="text-input" rows="12" class="w-full bg-gray-900 border border-gray-600 text-gray-300 rounded-lg p-2.5 font-sans" placeholder="Start typing here..."></textarea>
+        <p class="mb-6 text-gray-400">Upload one or more text files, or type/paste text below to convert to PDF with custom formatting.</p>
+        
+        <div class="mb-4">
+            <div class="flex gap-2 p-1 rounded-lg bg-gray-900 border border-gray-700 mb-4">
+                <button id="txt-mode-upload-btn" class="flex-1 btn bg-indigo-600 text-white font-semibold py-2 rounded-md">Upload Files</button>
+                <button id="txt-mode-text-btn" class="flex-1 btn bg-gray-700 text-gray-300 font-semibold py-2 rounded-md">Type Text</button>
+            </div>
+            
+            <div id="txt-upload-panel">
+                ${createFileInputHTML({ multiple: true, accept: 'text/plain,.txt', showControls: true })}
+                <div id="file-display-area" class="mt-4 space-y-2"></div>
+            </div>
+            
+            <div id="txt-text-panel" class="hidden">
+                <textarea id="text-input" rows="12" class="w-full bg-gray-900 border border-gray-600 text-gray-300 rounded-lg p-2.5 font-sans" placeholder="Start typing here..."></textarea>
+            </div>
+        </div>
+        
         <div class="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
                 <label for="font-family" class="block mb-2 text-sm font-medium text-gray-300">Font Family</label>
@@ -977,6 +1151,39 @@ export const toolTemplates = {
         ${createFileInputHTML({ multiple: true, accept: 'application/pdf', showControls: true })}
         <div id="file-display-area" class="mt-4 space-y-2"></div>
         <button id="process-btn" class="hidden btn-gradient w-full mt-6">Reverse & Download</button>
+    `,
+  'md-to-pdf': () => `
+        <h2 class="text-2xl font-bold text-white mb-4">Markdown to PDF</h2>
+        <p class="mb-6 text-gray-400">Write in Markdown, select your formatting options, and get a high-quality, multi-page PDF. <br><strong class="text-gray-300">Note:</strong> Images linked from the web (e.g., https://...) require an internet connection to be rendered.</p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div>
+                <label for="page-format" class="block mb-2 text-sm font-medium text-gray-300">Page Format</label>
+                <select id="page-format" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5">
+                    <option value="a4">A4</option>
+                    <option value="letter">Letter</option>
+                </select>
+            </div>
+            <div>
+                <label for="orientation" class="block mb-2 text-sm font-medium text-gray-300">Orientation</label>
+                <select id="orientation" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5">
+                    <option value="portrait">Portrait</option>
+                    <option value="landscape">Landscape</option>
+                </select>
+            </div>
+            <div>
+                <label for="margin-size" class="block mb-2 text-sm font-medium text-gray-300">Margin Size</label>
+                <select id="margin-size" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5">
+                    <option value="normal">Normal</option>
+                    <option value="narrow">Narrow</option>
+                    <option value="wide">Wide</option>
+                </select>
+            </div>
+        </div>
+        <div class="h-[50vh]">
+            <label for="md-input" class="block mb-2 text-sm font-medium text-gray-300">Markdown Editor</label>
+            <textarea id="md-input" class="w-full h-full bg-gray-900 border border-gray-600 text-gray-300 rounded-lg p-3 font-mono resize-none" placeholder="# Welcome to Markdown..."></textarea>
+        </div>
+        <button id="process-btn" class="btn-gradient w-full mt-6">Create PDF from Markdown</button>
     `,
   'svg-to-pdf': () => `
         <h2 class="text-2xl font-bold text-white mb-4">SVG to PDF</h2>
@@ -1449,117 +1656,36 @@ export const toolTemplates = {
 `,
 
   'word-to-pdf': () => `
-<div id="word-to-pdf-output" >
-    <canvas id="qtcanvas" class="hidden"></canvas>
-    <iframe id="frame" class="w-full h-[600px] mt-4 border border-gray-600 rounded-lg"></iframe>
-    <input type="checkbox" id="download" class="hidden" checked /> <!-- optional -->
-    
-    <div id="file-input-wrapper">
-         <div class="relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-600 rounded-xl cursor-pointer bg-gray-900 hover:bg-gray-700">
-            <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                <i data-lucide="file-text" class="w-10 h-10 mb-3 text-gray-400"></i>
-                <p class="mb-2 text-sm text-gray-400"><span class="font-semibold">Click to select a file</span> or drag and drop</p>
-                <p class="text-xs text-gray-500">A single .docx file</p>
+        <h2 class="text-2xl font-bold text-white mb-4">Word to PDF Converter</h2>
+        <p class="mb-6 text-gray-400">Upload a .docx file to convert it into a high-quality PDF with selectable text. Complex layouts may not be perfectly preserved.</p>
+        
+        <div id="file-input-wrapper">
+             <div class="relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-600 rounded-xl cursor-pointer bg-gray-900 hover:bg-gray-700">
+                <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                    <i data-lucide="file-text" class="w-10 h-10 mb-3 text-gray-400"></i>
+                    <p class="mb-2 text-sm text-gray-400"><span class="font-semibold">Click to select a file</span> or drag and drop</p>
+                    <p class="text-xs text-gray-500">A single .docx file</p>
+                </div>
+                <input id="file-input" type="file" class="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
             </div>
-            <input id="file-input" type="file" class="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
         </div>
-    </div>
-    
-    <div id="file-display-area" class="mt-4 space-y-2"></div>
-    <button id="process-btn" class="btn-gradient w-full mt-6" disabled>Preview & Convert</button>
-</div>
-`
-,
+        
+        <div id="file-display-area" class="mt-4 space-y-2"></div>
+        <button id="process-btn" class="btn-gradient w-full mt-6" disabled>Preview & Convert</button>
+    `,
 
   'sign-pdf': () => `
     <h2 class="text-2xl font-bold text-white mb-4">Sign PDF</h2>
-    <p class="mb-6 text-gray-400">Create your signature, select it, then click on the document to place. You can drag to move placed signatures.</p>
+    <p class="mb-6 text-gray-400">Upload a PDF to sign it using the built-in PDF.js viewer. Look for the <strong>signature/pen tool</strong> in the toolbar to add your signature.</p>
     ${createFileInputHTML()}
+    <div id="file-display-area" class="mt-4 space-y-2"></div>
     
     <div id="signature-editor" class="hidden mt-6">
-        <div class="bg-gray-900 p-4 rounded-lg border border-gray-700 mb-4">
-            <div class="flex border-b border-gray-700 mb-4">
-                <button id="draw-tab-btn" class="flex-1 p-2 text-sm font-semibold border-b-2 border-indigo-500 text-white">Draw</button>
-                <button id="type-tab-btn" class="flex-1 p-2 text-sm font-semibold border-b-2 border-transparent text-gray-400">Type</button>
-                <button id="upload-tab-btn" class="flex-1 p-2 text-sm font-semibold border-b-2 border-transparent text-gray-400">Upload</button>
-            </div>
-            
-            <div id="draw-panel">
-                <canvas id="signature-draw-canvas" class="bg-white rounded-md cursor-crosshair w-full" height="150"></canvas>
-                
-                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mt-2 gap-4 sm:gap-2">
-                    <div class="flex items-center gap-2">
-                        <label for="signature-color" class="text-sm font-medium text-gray-300">Color:</label>
-                        <input type="color" id="signature-color" value="#22c55e" class="w-10 h-10 bg-gray-700 border border-gray-600 rounded-lg p-1 cursor-pointer">
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <button id="clear-draw-btn" class="btn hover:bg-gray-600 text-sm flex-grow sm:flex-grow-0">Clear</button>
-                        <button id="save-draw-btn" class="btn-gradient px-4 py-2 text-sm rounded-lg flex-grow sm:flex-grow-0">Save Signature</button>
-                    </div>
-                </div>
-            </div>
-
-            <div id="type-panel" class="hidden">
-                <input type="text" id="signature-text-input" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5 mb-4" placeholder="Type your name here">
-                
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                    <div>
-                        <label for="font-family-select" class="block mb-1 text-xs font-medium text-gray-400">Font Style</label>
-                        <select id="font-family-select" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2 text-sm">
-                            <option value="'Great Vibes', cursive">Signature</option>
-                            <option value="'Kalam', cursive">Handwritten</option>
-                            <option value="'Dancing Script', cursive">Script</option>
-                            <option value="'Lato', sans-serif">Regular</option>
-                            <option value="'Merriweather', serif">Formal</option>
-                        </select>
-                    </div>
-                     <div>
-                        <label for="font-size-slider" class="block mb-1 text-xs font-medium text-gray-400">Font Size (<span id="font-size-value">48</span>px)</label>
-                        <input type="range" id="font-size-slider" min="24" max="72" value="32" class="w-full">
-                    </div>
-                    <div>
-                        <label for="font-color-picker" class="block mb-1 text-xs font-medium text-gray-400">Color</label>
-                        <input type="color" id="font-color-picker" value="#22c55e" class="w-full h-[38px] bg-gray-700 border border-gray-600 rounded-lg p-1 cursor-pointer">
-                    </div>
-                </div>
-
-                <div id="font-preview" class="p-4 h-[80px] bg-transparent rounded-md flex items-center justify-center text-4xl" style="font-family: 'Great Vibes', cursive; font-size: 32px; color: #22c55e;">Your Name</div>
-                 
-                <div class="flex justify-end mt-4">
-                    <button id="save-type-btn" class="btn-gradient px-4 py-2 text-sm rounded-lg">Save Signature</button>
-                </div>
-            </div>
-
-            <div id="upload-panel" class="hidden">
-                <input type="file" id="signature-upload-input" accept="image/png" class="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700">
-                *png files only
-            </div>
-            
-            <hr class="border-gray-700 my-4">
-            <h4 class="text-md font-semibold text-white mb-2">Your Saved Signatures</h4>
-            <div id="saved-signatures-container" class="flex flex-wrap gap-2 bg-gray-800 p-2 rounded-md min-h-[50px]">
-                <p class="text-xs text-gray-500 text-center w-full">Your saved signatures will appear here. Click one to select it.</p>
-            </div>
+        <div id="canvas-container-sign" class="relative w-full overflow-auto bg-gray-900 rounded-lg border border-gray-600" style="height: 85vh;">
+            <!-- PDF.js viewer iframe will be loaded here -->
         </div>
-
-        <div class="flex flex-wrap items-center justify-center gap-4 mb-4 p-3 bg-gray-900 rounded-lg border border-gray-700">
-            <button id="prev-page-sign" class="btn p-2 rounded-full bg-gray-700 hover:bg-gray-600 disabled:opacity-50"><i data-lucide="chevron-left"></i></button>
-            <span class="text-white font-medium">Page <span id="current-page-display-sign">1</span> of <span id="total-pages-display-sign">1</span></span>
-            <button id="next-page-sign" class="btn p-2 rounded-full bg-gray-700 hover:bg-gray-600 disabled:opacity-50"><i data-lucide="chevron-right"></i></button>
-            <div class="border-l border-gray-600 h-6 mx-2 hidden sm:block"></div>
-            <button id="zoom-out-btn" class="btn p-2 rounded-full bg-gray-700 hover:bg-gray-600"><i data-lucide="zoom-out"></i></button>
-            <button id="fit-width-btn" class="btn p-2 rounded-full bg-gray-700 hover:bg-gray-600"><i data-lucide="minimize"></i></button>
-            <button id="zoom-in-btn" class="btn p-2 rounded-full bg-gray-700 hover:bg-gray-600"><i data-lucide="zoom-in"></i></button>
-            <div class="border-l border-gray-600 h-6 mx-2 hidden sm:block"></div>
-            <button id="undo-btn" class="btn p-2 rounded-full" title="Undo Last Placement"><i data-lucide="undo-2"></i></button>
-        </div>
-
-        <div id="canvas-container-sign" class="relative w-full overflow-auto bg-gray-900 rounded-lg border border-gray-600 h-[60vh] md:h-[80vh]">
-            <canvas id="canvas-sign" class="mx-auto"></canvas>
-        </div>
-
+        <button id="process-btn" class="btn-gradient w-full mt-4" style="display:none;">Save & Download Signed PDF</button>
     </div>
-    <button id="process-btn" class="hidden btn-gradient w-full mt-6">Apply Signatures & Download PDF</button>
 `,
 
   'remove-annotations': () => `
@@ -1667,48 +1793,23 @@ export const toolTemplates = {
 
   'form-filler': () => `
     <h2 class="text-2xl font-bold text-white mb-4">PDF Form Filler</h2>
-    <p class="mb-6 text-gray-400">Upload a PDF to fill in existing form fields. The PDF view on the right will update as you type.</p>
+    <p class="mb-6 text-gray-400">Upload a PDF with form fields. Fill them directly in the viewer below, then click the button to save and download the filled form. Also supports XFA forms.</p>
+    
+    <div class="mb-4 p-3 bg-blue-900/20 border border-blue-700/50 rounded-lg">
+      <p class="text-sm text-blue-300">
+        <strong>Note on XFA Forms:</strong> XFA (XML Forms Architecture) is a legacy format that's only supported by certain PDF viewers like BentoPDF and Firefox. 
+        If you open an XFA PDF in other software and see blank pages or no form fields, it means that viewer doesn't support XFA. 
+        To view and fill XFA forms properly, use Firefox or BentoPDF's Form Filler.
+      </p>
+    </div>
+    
     ${createFileInputHTML()}
     <div id="file-display-area" class="mt-4 space-y-2"></div>
     <div id="form-filler-options" class="hidden mt-6">
-        <div class="flex flex-col lg:flex-row gap-4 h-[80vh]">
-            
-            <!-- Sidebar for form fields -->
-            <div class="w-full lg:w-1/3 bg-gray-900 rounded-lg p-4 overflow-y-auto border border-gray-700 flex-shrink-0">
-                <div id="form-fields-container" class="space-y-4">
-                    <div class="p-4 text-center text-gray-400">
-                        <p>Upload a file to see form fields here.</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- PDF Viewer -->
-            <div class="w-full lg:w-2/3 flex flex-col items-center gap-4">
-                <div class="flex flex-nowrap items-center justify-center gap-4 p-3 bg-gray-900 rounded-lg border border-gray-700">
-                    <button id="prev-page" class="btn p-2 rounded-full bg-gray-700 hover:bg-gray-600 disabled:opacity-50">
-                        <i data-lucide="chevron-left" class="w-5 h-5"></i>
-                    </button>
-                    <span class="text-white font-medium">
-                        Page <span id="current-page-display">1</span> of <span id="total-pages-display">1</span>
-                    </span>
-                    <button id="next-page" class="btn p-2 rounded-full bg-gray-700 hover:bg-gray-600 disabled:opacity-50">
-                        <i data-lucide="chevron-right" class="w-5 h-5"></i>
-                    </button>
-                    <button id="zoom-out-btn" class="btn p-2 rounded-full bg-gray-700 hover:bg-gray-600">
-                        <i data-lucide="zoom-out"></i>
-                    </button>
-                    <button id="zoom-in-btn" class="btn p-2 rounded-full bg-gray-700 hover:bg-gray-600">
-                        <i data-lucide="zoom-in"></i>
-                    </button>
-                </div>
-
-                <div id="pdf-viewer-container" class="relative w-full overflow-auto bg-gray-900 rounded-lg border border-gray-600 flex-grow">
-                    <canvas id="pdf-canvas" class="mx-auto max-w-full h-full"></canvas>
-                </div>
-            </div>
+        <div id="pdf-viewer-container" class="relative w-full overflow-auto bg-gray-900 rounded-lg border border-gray-600" style="height: 80vh;">
+            <!-- PDF.js viewer iframe will be loaded here -->
         </div>
-        
-        <button id="process-btn" class="btn-gradient w-full mt-6 hidden">Save & Download</button>
+        <button id="process-btn" class="btn-gradient w-full mt-4">Save & Download Filled Form</button>
     </div>
 `,
 
@@ -1855,128 +1956,52 @@ export const toolTemplates = {
     </div>
 `,
 
-  'md-to-pdf': () => `
-    <h2 class="text-2xl font-bold text-white mb-4">Markdown to PDF</h2>
-    <p class="mb-6 text-gray-400">Convert Markdown documents to PDF with support for GitHub Flavored Markdown, CommonMark, and Pandoc Markdown. Edit on the left, preview on the right.</p>
-    
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <!-- Left Panel: Markdown Editor -->
-      <div class="space-y-4">
-        <div>
-          <label for="file-input" class="block mb-2 text-sm font-medium text-gray-300">Upload .md file (optional)</label>
-          <input type="file" id="file-input" accept=".md,text/markdown" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5">
-        </div>
-        
-        <div>
-          <label for="markdown-flavor" class="block mb-2 text-sm font-medium text-gray-300">Markdown Flavor</label>
-          <select id="markdown-flavor" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5">
-            <option value="github">GitHub Flavored Markdown</option>
-            <option value="commonmark">CommonMark</option>
-            <option value="pandoc">Pandoc Markdown</option>
-          </select>
-        </div>
-        
-        <div>
-          <label for="md-input" class="block mb-2 text-sm font-medium text-gray-300">Markdown Content</label>
-          <textarea 
-            id="md-input" 
-            rows="20" 
-            class="w-full bg-gray-900 border border-gray-600 text-gray-300 rounded-lg p-3 font-mono text-sm" 
-            placeholder="# Your Markdown Content Here
+  linearize: () => `
+    <h2 class="text-2xl font-bold text-white mb-4">Linearize PDFs (Fast Web View)</h2>
+    <p class="mb-6 text-gray-400">Optimize multiple PDFs for faster loading over the web. Files will be downloaded in a ZIP archive.</p>
+    ${createFileInputHTML({ multiple: true, accept: 'application/pdf', showControls: true })} 
+    <div id="file-display-area" class="mt-4 space-y-2"></div>
+    <button id="process-btn" class="hidden btn-gradient w-full mt-6" disabled>Linearize PDFs & Download ZIP</button> 
+  `,
+  'add-attachments': () => `
+    <h2 class="text-2xl font-bold text-white mb-4">Add Attachments to PDF</h2>
+    <p class="mb-6 text-gray-400">First, upload the PDF document you want to add files to.</p>
+    ${createFileInputHTML({ accept: 'application/pdf' })}
+    <div id="file-display-area" class="mt-4 space-y-2"></div>
 
-## Features Supported
-- **Bold** and *italic* text
-- Lists (ordered and unordered)
-- [Links](https://example.com)
-- \`inline code\` and code blocks
-- Tables
-- > Blockquotes
-- Horizontal rules
-- Images
-- Mathematical expressions
-
-### Mathematical Expressions
-Inline math: $E = mc^2$
-
-Block math:
-$$
-\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}
-$$
-
-### Code Block Example
-\`\`\`javascript
-function hello() {
-  console.log('Hello, World!');
-}
-\`\`\`
-
-### Table Example
-| Feature | Support |
-|---------|---------|
-| Headers | ✅ |
-| Lists | ✅ |
-| Links | ✅ |
-| Code | ✅ |
-| Math | ✅ |"
-          ></textarea>
-        </div>
-      </div>
+    <div id="attachment-options" class="hidden mt-8">
+      <h3 class="text-lg font-semibold text-white mb-3">Upload Files to Attach</h3>
+      <p class="mb-4 text-gray-400">Select one or more files to embed within the PDF. You can attach any file type (images, documents, spreadsheets, etc.).</p>
       
-      <!-- Right Panel: Preview -->
-      <div class="space-y-4">
-        <div>
-          <label class="block mb-2 text-sm font-medium text-gray-300">Live Preview</label>
-          <div 
-            id="markdown-preview" 
-            class="w-full h-96 bg-white border border-gray-600 rounded-lg p-4 overflow-auto text-gray-900"
-            style="min-height: 500px;"
-          >
-            <p class="text-gray-500 italic">Preview will appear here...</p>
-          </div>
+      <label for="attachment-files-input" class="w-full flex justify-center items-center px-6 py-10 bg-gray-900 text-gray-400 rounded-lg border-2 border-dashed border-gray-600 hover:bg-gray-800 hover:border-gray-500 cursor-pointer transition-colors">
+        <div class="text-center">
+          <svg class="mx-auto h-12 w-12" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          <span class="mt-2 block text-sm font-medium">Click to upload files</span>
+          <span class="mt-1 block text-xs">Any file type, multiple files allowed</span>
         </div>
-      </div>
+        <input id="attachment-files-input" name="attachment-files" type="file" class="sr-only" multiple>
+      </label>
+
+      <div id="attachment-file-list" class="mt-4 space-y-2"></div>
+
+      <button id="process-btn" class="hidden btn-gradient w-full mt-6" disabled>Embed Files & Download</button>
     </div>
-    
-    <!-- PDF Options -->
-    <div class="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
-      <div>
-        <label for="page-format" class="block mb-2 text-sm font-medium text-gray-300">Page Format</label>
-        <select id="page-format" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5">
-          <option value="a4">A4</option>
-          <option value="letter">Letter</option>
-          <option value="legal">Legal</option>
-        </select>
-      </div>
-      
-      <div>
-        <label for="orientation" class="block mb-2 text-sm font-medium text-gray-300">Orientation</label>
-        <select id="orientation" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5">
-          <option value="portrait">Portrait</option>
-          <option value="landscape">Landscape</option>
-        </select>
-      </div>
-      
-      <div>
-        <label for="margin-size" class="block mb-2 text-sm font-medium text-gray-300">Margins</label>
-        <select id="margin-size" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5">
-          <option value="narrow">Narrow</option>
-          <option value="normal" selected>Normal</option>
-          <option value="wide">Wide</option>
-        </select>
-      </div>
-      
-      <div>
-        <label for="image-quality" class="block mb-2 text-sm font-medium text-gray-300">Image Quality</label>
-        <select id="image-quality" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5">
-          <option value="high" selected>High Quality (Best Results)</option>
-          <option value="medium">Medium Quality (Balanced)</option>
-          <option value="low">Low Quality (Smaller Files)</option>
-        </select>
-      </div>
-      
-      <div class="flex items-end">
-        <button id="process-btn" class="btn-gradient w-full">Convert to PDF</button>
-      </div>
+  `,
+  'extract-attachments': () => `
+    <h2 class="text-2xl font-bold text-white mb-4">Extract Attachments</h2>
+    <p class="mb-6 text-gray-400">Extract all embedded files from one or more PDFs. All attachments will be downloaded in a ZIP archive.</p>
+    ${createFileInputHTML({ multiple: true, accept: 'application/pdf', showControls: true })}
+    <div id="file-display-area" class="mt-4 space-y-2"></div>
+    <button id="process-btn" class="btn-gradient w-full mt-6">Extract Attachments</button>
+  `,
+  'edit-attachments': () => `
+    <h2 class="text-2xl font-bold text-white mb-4">Edit Attachments</h2>
+    <p class="mb-6 text-gray-400">View, remove, or replace attachments in your PDF.</p>
+    ${createFileInputHTML({ accept: 'application/pdf' })}
+    <div id="file-display-area" class="mt-4 space-y-2"></div>
+    <div id="edit-attachments-options" class="hidden mt-6">
+      <div id="attachments-list" class="space-y-3 mb-4"></div>
+      <button id="process-btn" class="btn-gradient w-full mt-6">Save Changes & Download</button>
     </div>
   `,
 
@@ -2046,5 +2071,47 @@ function hello() {
 
         <button id="process-btn" class="btn-gradient w-full mt-6">Sanitize PDF & Download</button>
     </div>
+`,
+
+  'remove-restrictions': () => `
+  <h2 class="text-2xl font-bold text-white mb-4">Remove PDF Restrictions</h2>
+  <p class="mb-6 text-gray-400">Remove security restrictions and unlock PDF permissions for editing and printing.</p>
+  ${createFileInputHTML()}
+  <div id="file-display-area" class="mt-4 space-y-2"></div>
+  <div id="remove-restrictions-options" class="hidden space-y-4 mt-6">
+        <div class="p-4 bg-blue-900/20 border border-blue-500/30 text-blue-200 rounded-lg">
+          <h3 class="font-semibold text-base mb-2"> How it Works </h3>
+          <p class="text-sm text-gray-300 mb-2">This operation will:</p>
+          <ul class="text-sm text-gray-300 list-disc list-inside space-y-1 ml-2">
+            <li>Remove all permission restrictions (printing, copying, editing)</li>
+            <li>Remove encryption even if the file is encrypted</li>
+            <li>Remove security restrictions associated with digitally signed PDF files (will make signature invalid)</li>
+            <li>Create a fully editable, unrestricted PDF</li>
+          </ul>
+      </div>
+
+      <div>
+          <label for="owner-password-remove" class="block mb-2 text-sm font-medium text-gray-300">Owner Password (if required)</label>
+          <input type="password" id="owner-password-remove" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5" placeholder="Leave empty if PDF has no password">
+          <p class="text-xs text-gray-500 mt-1">Enter the owner password if the PDF is password-protected</p>
+      </div>
+
+<div class="p-4 bg-red-900/20 border border-red-500/30 text-red-200 rounded-lg">
+  <h3 class="font-semibold text-base mb-2">Notice</h3>
+  <p class="text-sm text-gray-300 mb-2">This tool is intended for legitimate purposes only, such as:</p>
+  <ul class="text-sm text-gray-300 list-disc list-inside space-y-1 ml-2">
+    <li>Removing restrictions from PDFs you own or have permission to modify</li>
+    <li>Recovering access to a PDF when you legitimately forgot the password</li>
+    <li>Accessing content you legally purchased or created</li>
+    <li>Editing documents for authorized business purposes</li>
+    <li>Opening documents for legitimate archival, compliance, or recovery workflows</li>
+    <li class="font-semibold">Limitations: this tool can only remove restrictions from weakly protected PDFs or PDFs that do not have an owner password set. It cannot remove or bypass properly applied AES‑256 (256‑bit) encryption.</li>
+  </ul>
+  <p class="text-sm text-gray-300 mt-3 font-semibold">
+    Using this tool to bypass copyright protections, violate intellectual property rights, or access documents without authorization may be illegal in your jurisdiction. We are not liable for any misuse of this tool — if you're unsure, consult legal counsel or the document owner before proceeding.
+  </p>
+</div>
+      <button id="process-btn" class="btn-gradient w-full mt-6">Remove Restrictions & Download</button>
+  </div>
 `,
 };

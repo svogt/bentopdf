@@ -26,11 +26,11 @@ import { addHeaderFooter } from './add-header-footer.js';
 import { imageToPdf } from './image-to-pdf.js';
 import { changePermissions } from './change-permissions.js';
 import { pdfToMarkdown } from './pdf-to-markdown.js';
-import { txtToPdf } from './txt-to-pdf.js';
+import { txtToPdf, setupTxtToPdfTool } from './txt-to-pdf.js';
 import { invertColors } from './invert-colors.js';
 // import { viewMetadata } from './view-metadata.js';
 import { reversePages } from './reverse-pages.js';
-import { mdToPdf, setupMarkdownTool } from './md-to-pdf.js';
+// import { mdToPdf } from './md-to-pdf.js';
 import { svgToPdf } from './svg-to-pdf.js';
 import { bmpToPdf } from './bmp-to-pdf.js';
 import { heicToPdf } from './heic-to-pdf.js';
@@ -47,7 +47,7 @@ import { changeBackgroundColor } from './change-background-color.js';
 import { changeTextColor, setupTextColorTool } from './change-text-color.js';
 import { setupCompareTool } from './compare-pdfs.js';
 import { setupOcrTool } from './ocr-pdf.js';
-import { setupWordToPdfTool } from './word-to-pdf.js';
+import { wordToPdf } from './word-to-pdf.js';
 import { applyAndSaveSignatures, setupSignTool } from './sign-pdf.js';
 import {
   removeAnnotations,
@@ -63,13 +63,17 @@ import {
 import { alternateMerge, setupAlternateMergeTool } from './alternate-merge.js';
 import { linearizePdf } from './linearize.js';
 import { addAttachments, setupAddAttachmentsTool } from './add-attachments.js';
+import { extractAttachments } from './extract-attachments.js';
+import { editAttachments, setupEditAttachmentsTool } from './edit-attachments.js';
 import { sanitizePdf } from './sanitize-pdf.js';
+import { removeRestrictions } from './remove-restrictions.js';
 
 export const toolLogic = {
   merge: { process: merge, setup: setupMergeTool },
   split: { process: split, setup: setupSplitTool },
   encrypt,
   decrypt,
+  'remove-restrictions': removeRestrictions,
   organize,
   rotate,
   'add-page-numbers': addPageNumbers,
@@ -94,10 +98,10 @@ export const toolLogic = {
   'image-to-pdf': imageToPdf,
   'change-permissions': changePermissions,
   'pdf-to-markdown': pdfToMarkdown,
-  'txt-to-pdf': txtToPdf,
+  'txt-to-pdf': { process: txtToPdf, setup: setupTxtToPdfTool },
   'invert-colors': invertColors,
   'reverse-pages': reversePages,
-  'md-to-pdf': { process: mdToPdf, setup: setupMarkdownTool },
+  // 'md-to-pdf': mdToPdf,
   'svg-to-pdf': svgToPdf,
   'bmp-to-pdf': bmpToPdf,
   'heic-to-pdf': heicToPdf,
@@ -114,7 +118,7 @@ export const toolLogic = {
   'change-text-color': { process: changeTextColor, setup: setupTextColorTool },
   'compare-pdfs': { setup: setupCompareTool },
   'ocr-pdf': { setup: setupOcrTool },
-  'word-to-pdf': { process: setupWordToPdfTool, setup: setupWordToPdfTool },
+  'word-to-pdf': wordToPdf,
   'sign-pdf': { process: applyAndSaveSignatures, setup: setupSignTool },
   'remove-annotations': {
     process: removeAnnotations,
@@ -135,6 +139,11 @@ export const toolLogic = {
   'add-attachments': {
     process: addAttachments,
     setup: setupAddAttachmentsTool,
+  },
+  'extract-attachments': extractAttachments,
+  'edit-attachments': {
+    process: editAttachments,
+    setup: setupEditAttachmentsTool,
   },
   'sanitize-pdf': sanitizePdf,
 };

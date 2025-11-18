@@ -4,6 +4,7 @@ import { setupToolInterface } from './handlers/toolSelectionHandler.js';
 import { createIcons, icons } from 'lucide';
 import * as pdfjsLib from 'pdfjs-dist';
 import '../css/styles.css';
+import { formatStars } from './utils/helpers.js';
 
 const init = () => {
   pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -40,6 +41,11 @@ const init = () => {
       const heroSection = document.getElementById('hero-section');
       if (heroSection) {
         heroSection.style.display = 'none';
+      }
+
+      const githubLink = document.querySelector('a[href*="github.com/alam00000/bentopdf"]');
+      if (githubLink) {
+        (githubLink as HTMLElement).style.display = 'none';
       }
 
       const featuresSection = document.getElementById('features-section');
@@ -87,6 +93,9 @@ const init = () => {
             <p class="text-gray-400 text-sm">
               &copy; 2025 BentoPDF. All rights reserved.
             </p>
+            <p class="text-gray-500 text-xs mt-2">
+              Version <span id="app-version-simple">1.6.2</span>
+            </p>
           </div>
         `;
         document.body.appendChild(simpleFooter);
@@ -129,7 +138,7 @@ const init = () => {
     categoryGroup.className = 'category-group col-span-full';
 
     const title = document.createElement('h2');
-    title.className = 'text-xl font-bold text-indigo-400 mb-4 mt-8 first:mt-0';
+    title.className = 'text-xl font-bold text-indigo-400 mb-4 mt-8 first:mt-0 text-white';
     title.textContent = category.name;
 
     const toolsContainer = document.createElement('div');
@@ -137,10 +146,19 @@ const init = () => {
       'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6';
 
     category.tools.forEach((tool) => {
-      const toolCard = document.createElement('div');
-      toolCard.className =
-        'tool-card bg-gray-800 rounded-xl p-4 cursor-pointer flex flex-col items-center justify-center text-center';
-      toolCard.dataset.toolId = tool.id;
+      let toolCard: HTMLDivElement | HTMLAnchorElement;
+
+      if (tool.href) {
+        toolCard = document.createElement('a');
+        toolCard.href = tool.href;
+        toolCard.className =
+          'tool-card block bg-gray-800 rounded-xl p-4 cursor-pointer flex flex-col items-center justify-center text-center no-underline hover:shadow-lg transition duration-200';
+      } else {
+        toolCard = document.createElement('div');
+        toolCard.className =
+          'tool-card bg-gray-800 rounded-xl p-4 cursor-pointer flex flex-col items-center justify-center text-center hover:shadow-lg transition duration-200';
+        toolCard.dataset.toolId = tool.id;
+      }
 
       const icon = document.createElement('i');
       icon.className = 'w-10 h-10 mb-3 text-indigo-400';
@@ -258,6 +276,20 @@ const init = () => {
 
   createIcons({ icons });
   console.log('Please share our tool and share the love!');
+
+  const githubStarsElement = document.getElementById('github-stars');
+  if (githubStarsElement && !__SIMPLE_MODE__) {
+    fetch('https://api.github.com/repos/alam00000/bentopdf')
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.stargazers_count !== undefined) {
+          githubStarsElement.textContent = formatStars(data.stargazers_count);
+        }
+      })
+      .catch(() => {
+        githubStarsElement.textContent = '-';
+      });
+  }
 };
 
 document.addEventListener('DOMContentLoaded', init);

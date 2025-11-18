@@ -37,7 +37,10 @@ export const singlePdfLoadTools = [
   'posterize',
   'remove-blank-pages',
   'add-attachments',
+  'edit-attachments',
   'sanitize-pdf',
+  'remove-restrictions',
+  'bookmark-pdf',
 ];
 
 export const simpleTools = [
@@ -62,5 +65,7 @@ export const multiFileTools = [
   'alternate-merge',
   'linearize',
   'reverse-pages',
-  'compress'
+  'txt-to-pdf',
+  'compress',
+  'extract-attachments',
 ];
