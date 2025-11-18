@@ -6,7 +6,7 @@ import {
 } from '../utils/helpers.js';
 import { state } from '../state.js';
 import * as pdfjsLib from 'pdfjs-dist';
-import JSZip from 'jszip';
+
 import { PDFDocument, PDFName, PDFDict, PDFStream, PDFNumber } from 'pdf-lib';
 
 function dataUrlToBytes(dataUrl: any) {
@@ -270,20 +270,16 @@ export async function compress() {
 
   const smartSettings = { ...settings[level].smart, removeMetadata: true };
   const legacySettings = settings[level].legacy;
-  const pdfFiles = state.files.filter((f) => f.type === 'application/pdf');
 
-  if (!pdfFiles.length) {
-    showAlert('Error', 'No PDF files found to compress.');
-    return;
-  }
-  showLoader(`Compressing ${pdfFiles.length} PDF(s)...`);
-
-  const zip = new JSZip(); 
-  let totalOriginal = 0;
-  let totalCompressed = 0;
   try {
-    for (let i = 0; i < pdfFiles.length; i++) {
-      const originalFile = pdfFiles[i];
+    if (state.files.length === 0) {
+      showAlert('No Files', 'Please select at least one PDF file.');
+      hideLoader();
+      return;
+    }
+
+    if (state.files.length === 1) {
+      const originalFile = state.files[0];
       const arrayBuffer = await readFileAsArrayBuffer(originalFile);
 
       let resultBytes;
@@ -324,9 +320,6 @@ export async function compress() {
       const savingsPercent =
         savings > 0 ? ((savings / originalFile.size) * 100).toFixed(1) : 0;
 
-      totalOriginal += originalFile.size;
-      totalCompressed += resultBytes.length;
-
       if (savings > 0) {
         showAlert(
           'Compression Complete',
@@ -342,18 +335,67 @@ export async function compress() {
           'warning'
         );
       }
-      zip.file(`compressed-${originalFile.name}`, resultBytes);
+
+      downloadFile(
+        new Blob([resultBytes], { type: 'application/pdf' }),
+        'compressed-final.pdf'
+      );
+    } else {
+      showLoader('Compressing multiple PDFs...');
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+      let totalOriginalSize = 0;
+      let totalCompressedSize = 0;
+
+      for (let i = 0; i < state.files.length; i++) {
+        const file = state.files[i];
+        showLoader(`Compressing ${i + 1}/${state.files.length}: ${file.name}...`);
+        const arrayBuffer = await readFileAsArrayBuffer(file);
+        totalOriginalSize += file.size;
+
+        let resultBytes;
+        if (algorithm === 'vector') {
+          resultBytes = await performSmartCompression(arrayBuffer, smartSettings);
+        } else if (algorithm === 'photon') {
+          resultBytes = await performLegacyCompression(arrayBuffer, legacySettings);
+        } else {
+          const vectorResultBytes = await performSmartCompression(
+            arrayBuffer,
+            smartSettings
+          );
+          resultBytes = vectorResultBytes.length < file.size
+            ? vectorResultBytes
+            : await performLegacyCompression(arrayBuffer, legacySettings);
+        }
+
+        totalCompressedSize += resultBytes.length;
+        const baseName = file.name.replace(/\.pdf$/i, '');
+        zip.file(`${baseName}_compressed.pdf`, resultBytes);
+      }
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const totalSavings = totalOriginalSize - totalCompressedSize;
+      const totalSavingsPercent =
+        totalSavings > 0
+          ? ((totalSavings / totalOriginalSize) * 100).toFixed(1)
+          : 0;
+
+      if (totalSavings > 0) {
+        showAlert(
+          'Compression Complete',
+          `Compressed ${state.files.length} PDF(s). ` +
+            `Total size reduced from ${formatBytes(totalOriginalSize)} to ${formatBytes(totalCompressedSize)} (Saved ${totalSavingsPercent}%).`
+        );
+      } else {
+        showAlert(
+          'Compression Finished',
+          `Compressed ${state.files.length} PDF(s). ` +
+            `Total size: ${formatBytes(totalCompressedSize)}.`
+        );
+      }
+
+      downloadFile(zipBlob, 'compressed-pdfs.zip');
     }
-    const zipBlob = await zip.generateAsync({ type: 'blob' });
-    downloadFile(zipBlob, 'compressed_pdfs.zip');
-
-    const totalSavings = totalOriginal - totalCompressed;
-    const totalPercent = ((totalSavings / totalOriginal) * 100).toFixed(1);
-
-    showAlert(
-      'All Files Compressed',
-      `Total saved: ${totalPercent}% (${formatBytes(totalOriginal)} → ${formatBytes(totalCompressed)})`
-    );
   } catch (e) {
     showAlert(
       'Error',

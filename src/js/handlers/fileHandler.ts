@@ -24,6 +24,28 @@ import * as pdfjsLib from 'pdfjs-dist';
 async function handleSinglePdfUpload(toolId, file) {
   showLoader('Loading PDF...');
   try {
+    // For form-filler, bypass pdf-lib (can't handle XFA) and use PDF.js
+    if (toolId === 'form-filler') {
+      hideLoader();
+
+      const optionsDiv = document.getElementById('form-filler-options');
+      if (optionsDiv) optionsDiv.classList.remove('hidden');
+
+      const processBtn = document.getElementById('process-btn');
+      if (processBtn) {
+        const logic = toolLogic[toolId];
+        if (logic && logic.process) {
+          processBtn.onclick = logic.process;
+        }
+      }
+
+      const logic = toolLogic[toolId];
+      if (logic && logic.setup) {
+        await logic.setup();
+      }
+      return;
+    }
+
     const pdfBytes = await readFileAsArrayBuffer(file);
     state.pdfDoc = await PDFLibDocument.load(pdfBytes as ArrayBuffer, {
       ignoreEncryption: true,
@@ -33,7 +55,8 @@ async function handleSinglePdfUpload(toolId, file) {
     if (
       state.pdfDoc.isEncrypted &&
       toolId !== 'decrypt' &&
-      toolId !== 'change-permissions'
+      toolId !== 'change-permissions' &&
+      toolId !== 'remove-restrictions'
     ) {
       showAlert(
         'Protected PDF',
@@ -504,29 +527,86 @@ async function handleMultiFileUpload(toolId) {
     toolLogic['alternate-merge'].setup();
   } else if (toolId === 'image-to-pdf') {
     const imageList = document.getElementById('image-list');
-    imageList.textContent = ''; // Clear safely
-
+    imageList.textContent = '';
     state.files.forEach((file) => {
       const url = URL.createObjectURL(file);
       const li = document.createElement('li');
       li.className = 'relative group cursor-move';
       li.dataset.fileName = file.name;
 
+      const wrapper = document.createElement('div');
+      wrapper.className = 'w-full h-36 sm:h-40 md:h-44 bg-gray-900 rounded-md border-2 border-gray-600 flex items-center justify-center overflow-hidden';
+
       const img = document.createElement('img');
       img.src = url;
-      img.className =
-        'w-full h-full object-cover rounded-md border-2 border-gray-600';
+      img.className = 'max-w-full max-h-full object-contain';
 
       const p = document.createElement('p');
       p.className =
         'absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs text-center truncate p-1';
-      p.textContent = file.name; // Safe insertion
+      p.textContent = file.name;
 
-      li.append(img, p);
+      wrapper.appendChild(img);
+      li.append(wrapper, p);
       imageList.appendChild(li);
     });
 
     Sortable.create(imageList);
+    // Show image-to-pdf options and wire up slider text
+    const opts = document.getElementById('image-to-pdf-options');
+    if (opts) {
+      opts.classList.remove('hidden');
+      const slider = document.getElementById('image-pdf-quality') as HTMLInputElement;
+      const value = document.getElementById('image-pdf-quality-value');
+      if (slider && value) {
+        const update = () => (value.textContent = `${Math.round(parseFloat(slider.value) * 100)}%`);
+        slider.addEventListener('input', update);
+        update();
+      }
+    }
+  }
+
+  if (toolId === 'pdf-to-jpg') {
+    const qualitySlider = document.getElementById('jpg-quality') as HTMLInputElement;
+    const qualityValue = document.getElementById('jpg-quality-value');
+    if (qualitySlider && qualityValue) {
+      const updateValue = () => {
+        qualityValue.textContent = `${Math.round(parseFloat(qualitySlider.value) * 100)}%`;
+      };
+      qualitySlider.addEventListener('input', updateValue);
+      updateValue();
+    }
+  }
+
+  if (toolId === 'pdf-to-png') {
+    const qualitySlider = document.getElementById('png-quality') as HTMLInputElement;
+    const qualityValue = document.getElementById('png-quality-value');
+    if (qualitySlider && qualityValue) {
+      const updateValue = () => {
+        qualityValue.textContent = `${qualitySlider.value}x`;
+      };
+      qualitySlider.addEventListener('input', updateValue);
+      updateValue();
+    }
+  }
+
+  if (toolId === 'pdf-to-webp') {
+    const qualitySlider = document.getElementById('webp-quality') as HTMLInputElement;
+    const qualityValue = document.getElementById('webp-quality-value');
+    if (qualitySlider && qualityValue) {
+      const updateValue = () => {
+        qualityValue.textContent = `${Math.round(parseFloat(qualitySlider.value) * 100)}%`;
+      };
+      qualitySlider.addEventListener('input', updateValue);
+      updateValue();
+    }
+  }
+
+  if (toolId === 'jpg-to-pdf' || toolId === 'png-to-pdf') {
+    const optionsDiv = document.getElementById(`${toolId}-options`);
+    if (optionsDiv) {
+      optionsDiv.classList.remove('hidden');
+    }
   }
 }
 
@@ -557,7 +637,26 @@ export function setupFileInputHandler(toolId) {
     }
 
     if (isMultiFileTool) {
-      await handleMultiFileUpload(toolId);
+      if (toolId === 'txt-to-pdf' || toolId === 'compress' || toolId === 'extract-attachments') {
+        const processBtn = document.getElementById('process-btn');
+        if (processBtn) {
+          (processBtn as HTMLButtonElement).disabled = false;
+          if (toolId === 'compress') {
+            const optionsDiv = document.getElementById('compress-options');
+            if (optionsDiv) optionsDiv.classList.remove('hidden');
+          }
+          processBtn.onclick = () => {
+            const logic = toolLogic[toolId];
+            if (logic) {
+              const func =
+                typeof logic.process === 'function' ? logic.process : logic;
+              func();
+            }
+          };
+        }
+      } else {
+        await handleMultiFileUpload(toolId);
+      }
     } else if (singlePdfLoadTools.includes(toolId)) {
       await handleSinglePdfUpload(toolId, state.files[0]);
     } else if (simpleTools.includes(toolId)) {

@@ -66,9 +66,12 @@ export async function setupWordToPdfTool() {
   const zHM = new ZetaHelperMain('/static/office_thread.js', {
     threadJsType: 'module',
     wasmPkg: 'url:/static/'
-  });
+  }) as any;
 
-  // Assign thrPort.onmessage immediately
+  // Wait for ZetaHelper to initialize
+  await new Promise<void>(resolve => zHM.start(resolve));
+
+  // Assign thrPort.onmessage after initialization
   zHM.thrPort.onmessage = (e: MessageEvent) => {
     const data = e.data;
     switch (data.cmd) {
@@ -102,9 +105,6 @@ export async function setupWordToPdfTool() {
         console.warn('Unknown command from WASM:', data.cmd);
     }
   };
-
-  // Wait for ZetaHelper to initialize
-  await new Promise<void>(resolve => zHM.start(resolve));
 
   // Handle file selection
   (input as HTMLInputElement).onchange = async () => {

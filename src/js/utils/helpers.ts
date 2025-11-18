@@ -1,3 +1,7 @@
+import createModule from '@neslinesli93/qpdf-wasm';
+import { showLoader, hideLoader, showAlert } from '../ui';
+import { createIcons } from 'lucide';
+
 const STANDARD_SIZES = {
   A4: { width: 595.28, height: 841.89 },
   Letter: { width: 612, height: 792 },
@@ -45,10 +49,10 @@ export const hexToRgb = (hex: any) => {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result
     ? {
-        r: parseInt(result[1], 16) / 255,
-        g: parseInt(result[2], 16) / 255,
-        b: parseInt(result[3], 16) / 255,
-      }
+      r: parseInt(result[1], 16) / 255,
+      g: parseInt(result[2], 16) / 255,
+      b: parseInt(result[3], 16) / 255,
+    }
     : { r: 0, g: 0, b: 0 }; // Default to black
 };
 
@@ -146,3 +150,47 @@ export function formatIsoDate(isoDateString) {
     return isoDateString; // Return original string on any error
   }
 }
+
+let qpdfInstance: any = null;
+
+/**
+ * Initialize qpdf-wasm singleton.
+ * Subsequent calls return the same instance.
+ */
+export async function initializeQpdf() {
+  if (qpdfInstance) return qpdfInstance;
+
+  showLoader('Initializing PDF engine...');
+  try {
+    qpdfInstance = await createModule({
+      locateFile: () => '/qpdf.wasm',
+    });
+  } catch (error) {
+    console.error('Failed to initialize qpdf-wasm:', error);
+    showAlert(
+      'Initialization Error',
+      'Could not load the PDF engine. Please refresh the page and try again.'
+    );
+    throw error;
+  } finally {
+    hideLoader();
+  }
+
+  return qpdfInstance;
+}
+
+export function initializeIcons(): void {
+  createIcons({
+    attrs: {
+      class: 'bento-icon',
+      'stroke-width': '1.5',
+    },
+  });
+}
+
+export function formatStars(num: number) {
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K';
+  }
+  return num.toLocaleString();
+};
