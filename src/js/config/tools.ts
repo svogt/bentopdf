@@ -4,6 +4,12 @@ export const categories = [
     name: 'Popular Tools',
     tools: [
       {
+        href: '/src/pages/pdf-multi-tool.html',
+        name: 'PDF Multi Tool',
+        icon: 'pencil-ruler',
+        subtitle: 'Merge, Split, Organize, Delete, Rotate, Add Blank Pages, Extract and Duplicate in an unified interface.',
+      },
+      {
         id: 'merge',
         name: 'Merge PDF',
         icon: 'combine',
@@ -76,7 +82,19 @@ export const categories = [
         subtitle:
           'Annotate, highlight, redact, comment, add shapes/images, search, and view PDFs.',
       },
-      // { id: 'crop', name: 'Crop PDF', icon: 'crop', subtitle: 'Trim the margins of every page in your PDF.' },
+      {
+        // id: 'bookmark-pdf',
+        href: '/src/pages/bookmark.html',
+        name: 'Edit Bookmarks',
+        icon: 'bookmark',
+        subtitle: 'Add, edit, import, delete and extract PDF bookmarks.',
+      },
+      {
+        href: '/src/pages/table-of-contents.html',
+        name: 'Table of Contents',
+        icon: 'list',
+        subtitle: 'Generate a table of contents page from PDF bookmarks.',
+      },
       {
         id: 'add-page-numbers',
         name: 'Page Numbers',
@@ -120,6 +138,12 @@ export const categories = [
         subtitle: 'Draw, type, or upload your signature.',
       },
       {
+        href: '/src/pages/add-stamps.html',
+        name: 'Add Stamps',
+        icon: 'stamp',
+        subtitle: 'Add image stamps to your PDF using the annotation toolbar.',
+      },
+      {
         id: 'remove-annotations',
         name: 'Remove Annotations',
         icon: 'eraser',
@@ -135,7 +159,7 @@ export const categories = [
         id: 'form-filler',
         name: 'PDF Form Filler',
         icon: 'square-pen',
-        subtitle: 'Fill in forms directly in the browser.',
+        subtitle: 'Fill in forms directly in the browser. Also supports XFA forms.',
       },
       {
         id: 'remove-blank-pages',
@@ -203,18 +227,14 @@ export const categories = [
         subtitle: 'Convert a plain text file into a PDF.',
       },
       {
-        id: 'md-to-pdf',
-        name: 'Markdown to PDF',
-        icon: 'file-text',
-        subtitle: 'Convert Markdown files to PDF with live preview.',
+        href: '/src/pages/json-to-pdf.html',
+        name: 'JSON to PDF',
+        icon: 'file-code',
+        subtitle: 'Convert JSON files to PDF format.',
       },
+      // { id: 'md-to-pdf', name: 'Markdown to PDF', icon: 'file-text', subtitle: 'Convert a Markdown file into a PDF.' },
       // { id: 'scan-to-pdf', name: 'Scan to PDF', icon: 'camera', subtitle: 'Use your camera to create a scanned PDF.' },
-      {
-        id: 'word-to-pdf',
-        name: 'Word to PDF',
-        icon: 'file-text',
-        subtitle: 'Convert .docx documents to PDF.',
-      },
+      // { id: 'word-to-pdf', name: 'Word to PDF', icon: 'file-text', subtitle: 'Convert .docx documents to PDF.' },
     ],
   },
   {
@@ -255,6 +275,12 @@ export const categories = [
         name: 'PDF to Greyscale',
         icon: 'palette',
         subtitle: 'Convert all colors to black and white.',
+      },
+      {
+        href: '/src/pages/pdf-to-json.html',
+        name: 'PDF to JSON',
+        icon: 'file-code',
+        subtitle: 'Convert PDF files to JSON format.',
       },
       // { id: 'pdf-to-markdown', name: 'PDF to Markdown', icon: 'file-pen', subtitle: 'Extract text into a Markdown file.' },
     ],
@@ -297,6 +323,24 @@ export const categories = [
         name: 'Add Attachments',
         icon: 'paperclip',
         subtitle: 'Embed one or more files into your PDF.',
+      },
+      {
+        id: 'extract-attachments',
+        name: 'Extract Attachments',
+        icon: 'download',
+        subtitle: 'Extract all embedded files from PDF(s) as a ZIP.',
+      },
+      {
+        id: 'edit-attachments',
+        name: 'Edit Attachments',
+        icon: 'file-edit',
+        subtitle: 'View or remove attachments in your PDF.',
+      },
+      {
+        href: '/src/pages/pdf-multi-tool.html',
+        name: 'PDF Multi Tool',
+        icon: 'pencil-ruler',
+        subtitle: 'Full-featured PDF editor with page management.',
       },
       {
         id: 'split',
@@ -411,6 +455,13 @@ export const categories = [
         icon: 'ruler',
         subtitle: 'Analyze page size, orientation, and units.',
       },
+      {
+        id: 'remove-restrictions',
+        name: 'Remove Restrictions',
+        icon: 'unlink',
+        subtitle:
+          'Remove password protection and security restrictions associated with digitally signed PDF files.',
+      },
     ],
   },
   {
@@ -420,7 +471,7 @@ export const categories = [
         id: 'encrypt',
         name: 'Encrypt PDF',
         icon: 'lock',
-        subtitle: 'Add a password to protect your PDF.',
+        subtitle: 'Lock your PDF by adding a password.',
       },
       {
         id: 'sanitize-pdf',
@@ -432,7 +483,7 @@ export const categories = [
         id: 'decrypt',
         name: 'Decrypt PDF',
         icon: 'unlock',
-        subtitle: 'Remove password protection from a PDF.',
+        subtitle: 'Unlock PDF by removing password protection.',
       },
       {
         id: 'flatten',

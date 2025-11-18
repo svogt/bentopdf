@@ -23,8 +23,16 @@ When enabled, Simple Mode will:
 
 Use the pre-built Simple Mode image directly:
 
+**Using Docker Hub:**
+
 ```bash
-docker run -p 3000:80 bentopdf/bentopdf-simple:latest
+docker run -p 3000:8080 bentopdf/bentopdf-simple:latest
+```
+
+**Using GitHub Container Registry:**
+
+```bash
+docker run -p 3000:8080 ghcr.io/alam00000/bentopdf-simple:latest
 ```
 
 Or with Docker Compose:
@@ -32,11 +40,14 @@ Or with Docker Compose:
 ```yaml
 services:
   bentopdf:
+    # Using Docker Hub
     image: bentopdf/bentopdf-simple:latest
+    # Or using GitHub Container Registry
+    # image: ghcr.io/alam00000/bentopdf-simple:latest
     container_name: bentopdf
     restart: unless-stopped
     ports:
-      - '3000:80'
+      - '3000:8080'
 ```
 
 ### Method 2: Using Docker Compose with Build
@@ -54,7 +65,7 @@ Build the image with the SIMPLE_MODE build argument:
 
 ```bash
 docker build --build-arg SIMPLE_MODE=true -t bentopdf-simple .
-docker run -p 3000:80 bentopdf-simple
+docker run -p 3000:8080 bentopdf-simple
 ```
 
 ### Method 4: Using npm Script (Easiest for Local Development)
@@ -96,7 +107,7 @@ This automatically builds and serves Simple Mode on `http://localhost:3000`.
 ```bash
 # Pull and run the Simple Mode image
 docker pull bentopdf/bentopdf-simple:latest
-docker run -p 3000:80 bentopdf/bentopdf-simple:latest
+docker run -p 3000:8080 bentopdf/bentopdf-simple:latest
 ```
 
 Open `http://localhost:3000` in your browser.
@@ -117,10 +128,10 @@ Open `http://localhost:3000` in your browser.
 
 ```bash
 # Test Normal Mode
-docker run -p 3000:80 bentopdf/bentopdf:latest
+docker run -p 3000:8080 bentopdf/bentopdf:latest
 
 # Test Simple Mode
-docker run -p 3001:80 bentopdf/bentopdf-simple:latest
+docker run -p 3001:8080 bentopdf/bentopdf-simple:latest
 ```
 
 - Normal Mode: `http://localhost:3000`
@@ -142,13 +153,27 @@ When Simple Mode is working correctly, you should see:
 
 ### Normal Mode (Full Branding)
 
+**Docker Hub:**
+
 - `bentopdf/bentopdf:latest`
 - `bentopdf/bentopdf:v1.0.0` (versioned)
 
+**GitHub Container Registry:**
+
+- `ghcr.io/alam00000/bentopdf:latest`
+- `ghcr.io/alam00000/bentopdf:v1.0.0` (versioned)
+
 ### Simple Mode (Clean Interface)
+
+**Docker Hub:**
 
 - `bentopdf/bentopdf-simple:latest`
 - `bentopdf/bentopdf-simple:v1.0.0` (versioned)
+
+**GitHub Container Registry:**
+
+- `ghcr.io/alam00000/bentopdf-simple:latest`
+- `ghcr.io/alam00000/bentopdf-simple:v1.0.0` (versioned)
 
 ## 🚀 Production Deployment Examples
 
