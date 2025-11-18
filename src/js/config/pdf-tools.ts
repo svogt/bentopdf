@@ -37,10 +37,7 @@ export const singlePdfLoadTools = [
   'posterize',
   'remove-blank-pages',
   'add-attachments',
-  'edit-attachments',
   'sanitize-pdf',
-  'remove-restrictions',
-  'bookmark-pdf',
 ];
 
 export const simpleTools = [

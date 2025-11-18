@@ -31,10 +31,15 @@ export const showLoader = (text = 'Processing...') => {
 
 export const hideLoader = () => dom.loaderModal.classList.add('hidden');
 
-export const showAlert = (title: any, message: any) => {
+export const showAlert = (title: any, message: any, onConfirm?: () => void) => {
   dom.alertTitle.textContent = title;
   dom.alertMessage.textContent = message;
   dom.alertModal.classList.remove('hidden');
+  
+  // Store callback for when user clicks OK
+  if (onConfirm) {
+    (dom.alertModal as any).onConfirmCallback = onConfirm;
+  }
 };
 
 export const hideAlert = () => dom.alertModal.classList.add('hidden');
@@ -1152,39 +1157,6 @@ export const toolTemplates = {
         <div id="file-display-area" class="mt-4 space-y-2"></div>
         <button id="process-btn" class="hidden btn-gradient w-full mt-6">Reverse & Download</button>
     `,
-  'md-to-pdf': () => `
-        <h2 class="text-2xl font-bold text-white mb-4">Markdown to PDF</h2>
-        <p class="mb-6 text-gray-400">Write in Markdown, select your formatting options, and get a high-quality, multi-page PDF. <br><strong class="text-gray-300">Note:</strong> Images linked from the web (e.g., https://...) require an internet connection to be rendered.</p>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div>
-                <label for="page-format" class="block mb-2 text-sm font-medium text-gray-300">Page Format</label>
-                <select id="page-format" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5">
-                    <option value="a4">A4</option>
-                    <option value="letter">Letter</option>
-                </select>
-            </div>
-            <div>
-                <label for="orientation" class="block mb-2 text-sm font-medium text-gray-300">Orientation</label>
-                <select id="orientation" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5">
-                    <option value="portrait">Portrait</option>
-                    <option value="landscape">Landscape</option>
-                </select>
-            </div>
-            <div>
-                <label for="margin-size" class="block mb-2 text-sm font-medium text-gray-300">Margin Size</label>
-                <select id="margin-size" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5">
-                    <option value="normal">Normal</option>
-                    <option value="narrow">Narrow</option>
-                    <option value="wide">Wide</option>
-                </select>
-            </div>
-        </div>
-        <div class="h-[50vh]">
-            <label for="md-input" class="block mb-2 text-sm font-medium text-gray-300">Markdown Editor</label>
-            <textarea id="md-input" class="w-full h-full bg-gray-900 border border-gray-600 text-gray-300 rounded-lg p-3 font-mono resize-none" placeholder="# Welcome to Markdown..."></textarea>
-        </div>
-        <button id="process-btn" class="btn-gradient w-full mt-6">Create PDF from Markdown</button>
-    `,
   'svg-to-pdf': () => `
         <h2 class="text-2xl font-bold text-white mb-4">SVG to PDF</h2>
         <p class="mb-6 text-gray-400">Convert one or more SVG vector images into a single PDF file.</p>
@@ -1656,23 +1628,27 @@ export const toolTemplates = {
 `,
 
   'word-to-pdf': () => `
-        <h2 class="text-2xl font-bold text-white mb-4">Word to PDF Converter</h2>
-        <p class="mb-6 text-gray-400">Upload a .docx file to convert it into a high-quality PDF with selectable text. Complex layouts may not be perfectly preserved.</p>
-        
-        <div id="file-input-wrapper">
-             <div class="relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-600 rounded-xl cursor-pointer bg-gray-900 hover:bg-gray-700">
-                <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                    <i data-lucide="file-text" class="w-10 h-10 mb-3 text-gray-400"></i>
-                    <p class="mb-2 text-sm text-gray-400"><span class="font-semibold">Click to select a file</span> or drag and drop</p>
-                    <p class="text-xs text-gray-500">A single .docx file</p>
-                </div>
-                <input id="file-input" type="file" class="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+<div id="word-to-pdf-output" >
+    <canvas id="qtcanvas" class="hidden"></canvas>
+    <iframe id="frame" class="w-full h-[600px] mt-4 border border-gray-600 rounded-lg"></iframe>
+    <input type="checkbox" id="download" class="hidden" checked /> <!-- optional -->
+    
+    <div id="file-input-wrapper">
+         <div class="relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-600 rounded-xl cursor-pointer bg-gray-900 hover:bg-gray-700">
+            <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                <i data-lucide="file-text" class="w-10 h-10 mb-3 text-gray-400"></i>
+                <p class="mb-2 text-sm text-gray-400"><span class="font-semibold">Click to select a file</span> or drag and drop</p>
+                <p class="text-xs text-gray-500">A single .docx file</p>
             </div>
+            <input id="file-input" type="file" class="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
         </div>
-        
-        <div id="file-display-area" class="mt-4 space-y-2"></div>
-        <button id="process-btn" class="btn-gradient w-full mt-6" disabled>Preview & Convert</button>
-    `,
+    </div>
+    
+    <div id="file-display-area" class="mt-4 space-y-2"></div>
+    <button id="process-btn" class="btn-gradient w-full mt-6" disabled>Preview & Convert</button>
+</div>
+`
+,
 
   'sign-pdf': () => `
     <h2 class="text-2xl font-bold text-white mb-4">Sign PDF</h2>
@@ -1956,52 +1932,128 @@ export const toolTemplates = {
     </div>
 `,
 
-  linearize: () => `
-    <h2 class="text-2xl font-bold text-white mb-4">Linearize PDFs (Fast Web View)</h2>
-    <p class="mb-6 text-gray-400">Optimize multiple PDFs for faster loading over the web. Files will be downloaded in a ZIP archive.</p>
-    ${createFileInputHTML({ multiple: true, accept: 'application/pdf', showControls: true })} 
-    <div id="file-display-area" class="mt-4 space-y-2"></div>
-    <button id="process-btn" class="hidden btn-gradient w-full mt-6" disabled>Linearize PDFs & Download ZIP</button> 
-  `,
-  'add-attachments': () => `
-    <h2 class="text-2xl font-bold text-white mb-4">Add Attachments to PDF</h2>
-    <p class="mb-6 text-gray-400">First, upload the PDF document you want to add files to.</p>
-    ${createFileInputHTML({ accept: 'application/pdf' })}
-    <div id="file-display-area" class="mt-4 space-y-2"></div>
-
-    <div id="attachment-options" class="hidden mt-8">
-      <h3 class="text-lg font-semibold text-white mb-3">Upload Files to Attach</h3>
-      <p class="mb-4 text-gray-400">Select one or more files to embed within the PDF. You can attach any file type (images, documents, spreadsheets, etc.).</p>
-      
-      <label for="attachment-files-input" class="w-full flex justify-center items-center px-6 py-10 bg-gray-900 text-gray-400 rounded-lg border-2 border-dashed border-gray-600 hover:bg-gray-800 hover:border-gray-500 cursor-pointer transition-colors">
-        <div class="text-center">
-          <svg class="mx-auto h-12 w-12" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-          <span class="mt-2 block text-sm font-medium">Click to upload files</span>
-          <span class="mt-1 block text-xs">Any file type, multiple files allowed</span>
+  'md-to-pdf': () => `
+    <h2 class="text-2xl font-bold text-white mb-4">Markdown to PDF</h2>
+    <p class="mb-6 text-gray-400">Convert Markdown documents to PDF with support for GitHub Flavored Markdown, CommonMark, and Pandoc Markdown. Edit on the left, preview on the right.</p>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Left Panel: Markdown Editor -->
+      <div class="space-y-4">
+        <div>
+          <label for="file-input" class="block mb-2 text-sm font-medium text-gray-300">Upload .md file (optional)</label>
+          <input type="file" id="file-input" accept=".md,text/markdown" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5">
         </div>
-        <input id="attachment-files-input" name="attachment-files" type="file" class="sr-only" multiple>
-      </label>
+        
+        <div>
+          <label for="markdown-flavor" class="block mb-2 text-sm font-medium text-gray-300">Markdown Flavor</label>
+          <select id="markdown-flavor" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5">
+            <option value="github">GitHub Flavored Markdown</option>
+            <option value="commonmark">CommonMark</option>
+            <option value="pandoc">Pandoc Markdown</option>
+          </select>
+        </div>
+        
+        <div>
+          <label for="md-input" class="block mb-2 text-sm font-medium text-gray-300">Markdown Content</label>
+          <textarea 
+            id="md-input" 
+            rows="20" 
+            class="w-full bg-gray-900 border border-gray-600 text-gray-300 rounded-lg p-3 font-mono text-sm" 
+            placeholder="# Your Markdown Content Here
 
-      <div id="attachment-file-list" class="mt-4 space-y-2"></div>
+## Features Supported
+- **Bold** and *italic* text
+- Lists (ordered and unordered)
+- [Links](https://example.com)
+- \`inline code\` and code blocks
+- Tables
+- > Blockquotes
+- Horizontal rules
+- Images
+- Mathematical expressions
 
-      <button id="process-btn" class="hidden btn-gradient w-full mt-6" disabled>Embed Files & Download</button>
+### Mathematical Expressions
+Inline math: $E = mc^2$
+
+Block math:
+$$
+\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}
+$$
+
+### Code Block Example
+\`\`\`javascript
+function hello() {
+  console.log('Hello, World!');
+}
+\`\`\`
+
+### Table Example
+| Feature | Support |
+|---------|---------|
+| Headers | ✅ |
+| Lists | ✅ |
+| Links | ✅ |
+| Code | ✅ |
+| Math | ✅ |"
+          ></textarea>
+        </div>
+      </div>
+      
+      <!-- Right Panel: Preview -->
+      <div class="space-y-4">
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-300">Live Preview</label>
+          <div 
+            id="markdown-preview" 
+            class="w-full h-96 bg-white border border-gray-600 rounded-lg p-4 overflow-auto text-gray-900"
+            style="min-height: 500px;"
+          >
+            <p class="text-gray-500 italic">Preview will appear here...</p>
+          </div>
+        </div>
+      </div>
     </div>
-  `,
-  'extract-attachments': () => `
-    <h2 class="text-2xl font-bold text-white mb-4">Extract Attachments</h2>
-    <p class="mb-6 text-gray-400">Extract all embedded files from one or more PDFs. All attachments will be downloaded in a ZIP archive.</p>
-    ${createFileInputHTML({ multiple: true, accept: 'application/pdf', showControls: true })}
-    <div id="file-display-area" class="mt-4 space-y-2"></div>
-    <button id="process-btn" class="btn-gradient w-full mt-6">Extract Attachments</button>
-  `,
-  'edit-attachments': () => `
-    <h2 class="text-2xl font-bold text-white mb-4">Edit Attachments</h2>
-    <p class="mb-6 text-gray-400">View, remove, or replace attachments in your PDF.</p>
-    ${createFileInputHTML({ accept: 'application/pdf' })}
-    <div id="file-display-area" class="mt-4 space-y-2"></div>
-    <div id="edit-attachments-options" class="hidden mt-6">
-      <div id="attachments-list" class="space-y-3 mb-4"></div>
-      <button id="process-btn" class="btn-gradient w-full mt-6">Save Changes & Download</button>
+    
+    <!-- PDF Options -->
+    <div class="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div>
+        <label for="page-format" class="block mb-2 text-sm font-medium text-gray-300">Page Format</label>
+        <select id="page-format" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5">
+          <option value="a4">A4</option>
+          <option value="letter">Letter</option>
+          <option value="legal">Legal</option>
+        </select>
+      </div>
+      
+      <div>
+        <label for="orientation" class="block mb-2 text-sm font-medium text-gray-300">Orientation</label>
+        <select id="orientation" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5">
+          <option value="portrait">Portrait</option>
+          <option value="landscape">Landscape</option>
+        </select>
+      </div>
+      
+      <div>
+        <label for="margin-size" class="block mb-2 text-sm font-medium text-gray-300">Margins</label>
+        <select id="margin-size" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5">
+          <option value="narrow">Narrow</option>
+          <option value="normal" selected>Normal</option>
+          <option value="wide">Wide</option>
+        </select>
+      </div>
+      
+      <div>
+        <label for="image-quality" class="block mb-2 text-sm font-medium text-gray-300">Image Quality</label>
+        <select id="image-quality" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5">
+          <option value="high" selected>High Quality (Best Results)</option>
+          <option value="medium">Medium Quality (Balanced)</option>
+          <option value="low">Low Quality (Smaller Files)</option>
+        </select>
+      </div>
+      
+      <div class="flex items-end">
+        <button id="process-btn" class="btn-gradient w-full">Convert to PDF</button>
+      </div>
     </div>
   `,
 
@@ -2071,47 +2123,5 @@ export const toolTemplates = {
 
         <button id="process-btn" class="btn-gradient w-full mt-6">Sanitize PDF & Download</button>
     </div>
-`,
-
-  'remove-restrictions': () => `
-  <h2 class="text-2xl font-bold text-white mb-4">Remove PDF Restrictions</h2>
-  <p class="mb-6 text-gray-400">Remove security restrictions and unlock PDF permissions for editing and printing.</p>
-  ${createFileInputHTML()}
-  <div id="file-display-area" class="mt-4 space-y-2"></div>
-  <div id="remove-restrictions-options" class="hidden space-y-4 mt-6">
-        <div class="p-4 bg-blue-900/20 border border-blue-500/30 text-blue-200 rounded-lg">
-          <h3 class="font-semibold text-base mb-2"> How it Works </h3>
-          <p class="text-sm text-gray-300 mb-2">This operation will:</p>
-          <ul class="text-sm text-gray-300 list-disc list-inside space-y-1 ml-2">
-            <li>Remove all permission restrictions (printing, copying, editing)</li>
-            <li>Remove encryption even if the file is encrypted</li>
-            <li>Remove security restrictions associated with digitally signed PDF files (will make signature invalid)</li>
-            <li>Create a fully editable, unrestricted PDF</li>
-          </ul>
-      </div>
-
-      <div>
-          <label for="owner-password-remove" class="block mb-2 text-sm font-medium text-gray-300">Owner Password (if required)</label>
-          <input type="password" id="owner-password-remove" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5" placeholder="Leave empty if PDF has no password">
-          <p class="text-xs text-gray-500 mt-1">Enter the owner password if the PDF is password-protected</p>
-      </div>
-
-<div class="p-4 bg-red-900/20 border border-red-500/30 text-red-200 rounded-lg">
-  <h3 class="font-semibold text-base mb-2">Notice</h3>
-  <p class="text-sm text-gray-300 mb-2">This tool is intended for legitimate purposes only, such as:</p>
-  <ul class="text-sm text-gray-300 list-disc list-inside space-y-1 ml-2">
-    <li>Removing restrictions from PDFs you own or have permission to modify</li>
-    <li>Recovering access to a PDF when you legitimately forgot the password</li>
-    <li>Accessing content you legally purchased or created</li>
-    <li>Editing documents for authorized business purposes</li>
-    <li>Opening documents for legitimate archival, compliance, or recovery workflows</li>
-    <li class="font-semibold">Limitations: this tool can only remove restrictions from weakly protected PDFs or PDFs that do not have an owner password set. It cannot remove or bypass properly applied AES‑256 (256‑bit) encryption.</li>
-  </ul>
-  <p class="text-sm text-gray-300 mt-3 font-semibold">
-    Using this tool to bypass copyright protections, violate intellectual property rights, or access documents without authorization may be illegal in your jurisdiction. We are not liable for any misuse of this tool — if you're unsure, consult legal counsel or the document owner before proceeding.
-  </p>
-</div>
-      <button id="process-btn" class="btn-gradient w-full mt-6">Remove Restrictions & Download</button>
-  </div>
 `,
 };

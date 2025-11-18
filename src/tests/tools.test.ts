@@ -22,7 +22,7 @@ describe('Tool Categories Configuration', () => {
 
     // **KEY CHANGE**: This test now ensures IDs are unique only WITHIN this specific category.
     it('should not contain any duplicate tool IDs within its own list', () => {
-      const toolIds = category.tools.map((tool) => tool.id);
+      const toolIds = category.tools.map((tool: any) => tool.id || tool.href).filter(Boolean);
       const uniqueToolIds = new Set(toolIds);
 
       // This assertion checks for duplicates inside THIS category only.
@@ -30,16 +30,20 @@ describe('Tool Categories Configuration', () => {
     });
 
     // 3. Loop through each tool inside the category to validate its schema
-    describe.each(category.tools)('Tool: "$name"', (tool) => {
+    describe.each(category.tools)('Tool: "$name"', (tool: any) => {
       it('should have the correct properties with non-empty string values', () => {
-        // Check for property existence
-        expect(tool).toHaveProperty('id');
+        // Check for property existence - tools should have either id or href
+        expect(tool.id || tool.href).toBeTruthy();
         expect(tool).toHaveProperty('name');
         expect(tool).toHaveProperty('icon');
         expect(tool).toHaveProperty('subtitle');
 
         // Check for non-empty string types for each property
-        for (const key of ['id', 'name', 'icon', 'subtitle']) {
+        const identifier = tool.id || tool.href;
+        expect(typeof identifier).toBe('string');
+        expect(identifier.length).toBeGreaterThan(0);
+        
+        for (const key of ['name', 'icon', 'subtitle']) {
           const value = tool[key as keyof typeof tool];
           expect(typeof value).toBe('string');
           expect(value.length).toBeGreaterThan(0);
