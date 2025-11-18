@@ -407,13 +407,7 @@ export async function mdToPdf() {
     
     // Show success message
     hideLoader();
-    showAlert('PDF Conversion Complete', 'Your PDF has been generated and downloaded successfully.', () => {
-      // Navigate back to the markdown tool
-      const markdownTool = document.querySelector('[data-tool-id="md-to-pdf"]') as HTMLElement;
-      if (markdownTool) {
-        markdownTool.click();
-      }
-    });
+    showAlert('PDF Conversion Complete', 'Your PDF has been generated and downloaded successfully.');
     
     if (parseFloat(fileSizeMB) > 15) {
       console.warn(`Large PDF generated: ${fileSizeMB} MB. Consider using "Low Quality" setting for smaller files.`);
