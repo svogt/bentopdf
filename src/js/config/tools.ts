@@ -484,12 +484,6 @@ export const categories = [
         subtitle: 'Remove metadata, annotations, scripts, and more.',
       },
       {
-        id: 'sanitize-pdf',
-        name: 'Sanitize PDF',
-        icon: 'brush-cleaning',
-        subtitle: 'Remove metadata, annotations, scripts, and more.',
-      },
-      {
         id: 'decrypt',
         name: 'Decrypt PDF',
         icon: 'unlock',

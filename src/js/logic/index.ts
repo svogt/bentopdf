@@ -2,6 +2,7 @@ import { merge, setupMergeTool } from './merge.js';
 import { setupSplitTool, split } from './split.js';
 import { encrypt } from './encrypt.js';
 import { decrypt } from './decrypt.js';
+import { removeRestrictions } from './remove-restrictions.js';
 import { organize } from './organize.js';
 import { rotate } from './rotate.js';
 import { addPageNumbers } from './add-page-numbers.js';

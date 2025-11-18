@@ -66,7 +66,7 @@ export async function setupWordToPdfTool() {
   const zHM = new ZetaHelperMain('/static/office_thread.js', {
     threadJsType: 'module',
     wasmPkg: 'url:/static/'
-  });
+  }) as any;
 
   // Assign thrPort.onmessage immediately
   zHM.thrPort.onmessage = (e: MessageEvent) => {
